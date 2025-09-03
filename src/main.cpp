@@ -56,7 +56,7 @@ void setup_signal_handlers() {
     std::signal(SIGINT, signal_handler);
     std::signal(SIGTERM, signal_handler);
     std::signal(SIGHUP, signal_handler);
-    
+
     // Ignore SIGPIPE
     std::signal(SIGPIPE, SIG_IGN);
 }
@@ -86,11 +86,11 @@ int main(int argc, char* argv[]) {
     bool daemon_mode = false;
     bool test_config = false;
     bool verbose = false;
-    
+
     // Parse command line arguments
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
-        
+
         if (arg == "-c" || arg == "--config") {
             if (i + 1 < argc) {
                 config_file = argv[++i];
@@ -118,57 +118,57 @@ int main(int argc, char* argv[]) {
             return 1;
         }
     }
-    
+
     try {
         // Initialize logger
-        simple_snmpd::Logger::initialize(verbose ? simple_snmpd::LogLevel::DEBUG : simple_snmpd::LogLevel::INFO);
-        
+        simple_snmpd::Logger::get_instance().initialize(verbose ? simple_snmpd::LogLevel::DEBUG : simple_snmpd::LogLevel::INFO);
+
         // Load configuration
         simple_snmpd::SNMPConfig config;
         if (!config.load(config_file)) {
             std::cerr << "Error: Failed to load configuration from " << config_file << "\n";
             return 1;
         }
-        
+
         if (test_config) {
             std::cout << "Configuration test passed\n";
             return 0;
         }
-        
+
         // Setup signal handlers
         setup_signal_handlers();
-        
+
         // Create and configure SNMP server
         g_server = std::make_unique<simple_snmpd::SNMPServer>(config);
-        
+
         if (!g_server->initialize()) {
             std::cerr << "Error: Failed to initialize SNMP server\n";
             return 1;
         }
-        
+
         // Start the server
         if (!g_server->start()) {
             std::cerr << "Error: Failed to start SNMP server\n";
             return 1;
         }
-        
+
         std::cout << "Simple SNMP Daemon started successfully\n";
         std::cout << "Listening on port " << config.get_port() << "\n";
-        
+
         // Main loop
         while (g_running) {
             // TODO: Implement main server loop
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
-        
+
         // Stop the server
         g_server->stop();
         std::cout << "Simple SNMP Daemon stopped\n";
-        
+
     } catch (const std::exception& e) {
         std::cerr << "Error: " << e.what() << "\n";
         return 1;
     }
-    
+
     return 0;
 }

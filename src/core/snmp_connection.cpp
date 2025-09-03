@@ -52,25 +52,25 @@ bool SNMPConnection::send_response(const SNMPPacket& packet) {
     if (!connected_) {
         return false;
     }
-    
+
     std::vector<uint8_t> buffer;
     if (!packet.serialize(buffer)) {
         Logger::get_instance().log(LogLevel::ERROR, "Failed to serialize SNMP packet");
         return false;
     }
-    
-    ssize_t bytes_sent = send(socket_fd_, reinterpret_cast<const char*>(buffer.data()), 
+
+    ssize_t bytes_sent = send(socket_fd_, reinterpret_cast<const char*>(buffer.data()),
                              buffer.size(), 0);
-    
+
     if (bytes_sent < 0) {
         Logger::get_instance().log(LogLevel::ERROR, "Failed to send SNMP response");
         return false;
     }
-    
+
     if (static_cast<size_t>(bytes_sent) != buffer.size()) {
         Logger::get_instance().log(LogLevel::WARNING, "Partial send of SNMP response");
     }
-    
+
     last_activity_ = std::chrono::steady_clock::now();
     return true;
 }
@@ -79,27 +79,27 @@ bool SNMPConnection::receive_request(SNMPPacket& packet) {
     if (!connected_) {
         return false;
     }
-    
+
     uint8_t buffer[4096];
-    ssize_t bytes_received = recv(socket_fd_, reinterpret_cast<char*>(buffer), 
+    ssize_t bytes_received = recv(socket_fd_, reinterpret_cast<char*>(buffer),
                                  sizeof(buffer), 0);
-    
+
     if (bytes_received < 0) {
         Logger::get_instance().log(LogLevel::ERROR, "Failed to receive SNMP request");
         return false;
     }
-    
+
     if (bytes_received == 0) {
         Logger::get_instance().log(LogLevel::INFO, "Client disconnected");
         connected_ = false;
         return false;
     }
-    
+
     if (!packet.parse(buffer, bytes_received)) {
         Logger::get_instance().log(LogLevel::ERROR, "Failed to parse SNMP packet");
         return false;
     }
-    
+
     last_activity_ = std::chrono::steady_clock::now();
     return true;
 }
@@ -146,7 +146,7 @@ void SNMPConnection::set_non_blocking(bool non_blocking) {
     if (socket_fd_ == -1) {
         return;
     }
-    
+
 #ifdef _WIN32
     u_long mode = non_blocking ? 1 : 0;
     ioctlsocket(socket_fd_, FIONBIO, &mode);
@@ -167,14 +167,14 @@ bool SNMPConnection::set_timeout(uint32_t timeout_seconds) {
     if (socket_fd_ == -1) {
         return false;
     }
-    
+
 #ifdef _WIN32
     DWORD timeout = timeout_seconds * 1000;
-    if (setsockopt(socket_fd_, SOL_SOCKET, SO_RCVTIMEO, 
+    if (setsockopt(socket_fd_, SOL_SOCKET, SO_RCVTIMEO,
                    reinterpret_cast<const char*>(&timeout), sizeof(timeout)) == SOCKET_ERROR) {
         return false;
     }
-    if (setsockopt(socket_fd_, SOL_SOCKET, SO_SNDTIMEO, 
+    if (setsockopt(socket_fd_, SOL_SOCKET, SO_SNDTIMEO,
                    reinterpret_cast<const char*>(&timeout), sizeof(timeout)) == SOCKET_ERROR) {
         return false;
     }
@@ -182,17 +182,17 @@ bool SNMPConnection::set_timeout(uint32_t timeout_seconds) {
     struct timeval timeout;
     timeout.tv_sec = timeout_seconds;
     timeout.tv_usec = 0;
-    
-    if (setsockopt(socket_fd_, SOL_SOCKET, SO_RCVTIMEO, 
+
+    if (setsockopt(socket_fd_, SOL_SOCKET, SO_RCVTIMEO,
                    &timeout, sizeof(timeout)) < 0) {
         return false;
     }
-    if (setsockopt(socket_fd_, SOL_SOCKET, SO_SNDTIMEO, 
+    if (setsockopt(socket_fd_, SOL_SOCKET, SO_SNDTIMEO,
                    &timeout, sizeof(timeout)) < 0) {
         return false;
     }
 #endif
-    
+
     return true;
 }
 

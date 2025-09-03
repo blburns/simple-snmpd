@@ -1,0 +1,11 @@
+/Users/blb/Workspace/SimpleDaemons/simple-snmpd/build/CMakeFiles/simple-snmpd-core.dir
+/Users/blb/Workspace/SimpleDaemons/simple-snmpd/build/CMakeFiles/simple-snmpd.dir
+/Users/blb/Workspace/SimpleDaemons/simple-snmpd/build/CMakeFiles/package.dir
+/Users/blb/Workspace/SimpleDaemons/simple-snmpd/build/CMakeFiles/package_source.dir
+/Users/blb/Workspace/SimpleDaemons/simple-snmpd/build/CMakeFiles/test.dir
+/Users/blb/Workspace/SimpleDaemons/simple-snmpd/build/CMakeFiles/edit_cache.dir
+/Users/blb/Workspace/SimpleDaemons/simple-snmpd/build/CMakeFiles/rebuild_cache.dir
+/Users/blb/Workspace/SimpleDaemons/simple-snmpd/build/CMakeFiles/list_install_components.dir
+/Users/blb/Workspace/SimpleDaemons/simple-snmpd/build/CMakeFiles/install.dir
+/Users/blb/Workspace/SimpleDaemons/simple-snmpd/build/CMakeFiles/install/local.dir
+/Users/blb/Workspace/SimpleDaemons/simple-snmpd/build/CMakeFiles/install/strip.dir

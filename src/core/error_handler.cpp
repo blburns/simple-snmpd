@@ -32,16 +32,16 @@ ErrorHandler::~ErrorHandler() {
 
 void ErrorHandler::handle_error(const std::string& message, const std::string& file, int line) {
     error_count_++;
-    
+
     std::ostringstream oss;
     oss << "ERROR [" << std::setfill('0') << std::setw(6) << error_count_ << "] ";
     oss << "(" << file << ":" << line << ") " << message;
-    
+
     std::string error_msg = oss.str();
-    
+
     // Log the error
     Logger::get_instance().log(LogLevel::ERROR, error_msg);
-    
+
     // Print to stderr if in debug mode
     if (Logger::get_instance().get_level() <= LogLevel::DEBUG) {
         std::cerr << error_msg << std::endl;
@@ -50,16 +50,16 @@ void ErrorHandler::handle_error(const std::string& message, const std::string& f
 
 void ErrorHandler::handle_warning(const std::string& message, const std::string& file, int line) {
     warning_count_++;
-    
+
     std::ostringstream oss;
     oss << "WARNING [" << std::setfill('0') << std::setw(6) << warning_count_ << "] ";
     oss << "(" << file << ":" << line << ") " << message;
-    
+
     std::string warning_msg = oss.str();
-    
+
     // Log the warning
     Logger::get_instance().log(LogLevel::WARNING, warning_msg);
-    
+
     // Print to stderr if in debug mode
     if (Logger::get_instance().get_level() <= LogLevel::DEBUG) {
         std::cerr << warning_msg << std::endl;
@@ -69,9 +69,9 @@ void ErrorHandler::handle_warning(const std::string& message, const std::string&
 void ErrorHandler::handle_info(const std::string& message, const std::string& file, int line) {
     std::ostringstream oss;
     oss << "INFO (" << file << ":" << line << ") " << message;
-    
+
     std::string info_msg = oss.str();
-    
+
     // Log the info
     Logger::get_instance().log(LogLevel::INFO, info_msg);
 }
@@ -79,9 +79,9 @@ void ErrorHandler::handle_info(const std::string& message, const std::string& fi
 void ErrorHandler::handle_debug(const std::string& message, const std::string& file, int line) {
     std::ostringstream oss;
     oss << "DEBUG (" << file << ":" << line << ") " << message;
-    
+
     std::string debug_msg = oss.str();
-    
+
     // Log the debug message
     Logger::get_instance().log(LogLevel::DEBUG, debug_msg);
 }

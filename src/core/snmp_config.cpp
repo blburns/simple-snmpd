@@ -24,7 +24,7 @@
 
 namespace simple_snmpd {
 
-SNMPConfig::SNMPConfig() 
+SNMPConfig::SNMPConfig()
     : port_(161)
     , community_("public")
     , max_connections_(100)
@@ -44,53 +44,53 @@ bool SNMPConfig::load(const std::string& config_file) {
         Logger::get_instance().log(LogLevel::ERROR, "Failed to open config file: " + config_file);
         return false;
     }
-    
+
     std::string line;
     int line_number = 0;
-    
+
     while (std::getline(file, line)) {
         line_number++;
-        
+
         // Remove comments and whitespace
         size_t comment_pos = line.find('#');
         if (comment_pos != std::string::npos) {
             line = line.substr(0, comment_pos);
         }
-        
+
         // Trim whitespace
         line.erase(0, line.find_first_not_of(" \t\r\n"));
         line.erase(line.find_last_not_of(" \t\r\n") + 1);
-        
+
         // Skip empty lines
         if (line.empty()) {
             continue;
         }
-        
+
         // Parse key=value pairs
         size_t equal_pos = line.find('=');
         if (equal_pos == std::string::npos) {
-            Logger::get_instance().log(LogLevel::WARNING, 
+            Logger::get_instance().log(LogLevel::WARNING,
                 "Invalid config line " + std::to_string(line_number) + ": " + line);
             continue;
         }
-        
+
         std::string key = line.substr(0, equal_pos);
         std::string value = line.substr(equal_pos + 1);
-        
+
         // Trim key and value
         key.erase(0, key.find_first_not_of(" \t"));
         key.erase(key.find_last_not_of(" \t") + 1);
         value.erase(0, value.find_first_not_of(" \t"));
         value.erase(value.find_last_not_of(" \t") + 1);
-        
+
         // Parse configuration values
         if (!parse_config_value(key, value)) {
-            Logger::get_instance().log(LogLevel::WARNING, 
-                "Invalid config value at line " + std::to_string(line_number) + 
+            Logger::get_instance().log(LogLevel::WARNING,
+                "Invalid config value at line " + std::to_string(line_number) +
                 ": " + key + "=" + value);
         }
     }
-    
+
     file.close();
     Logger::get_instance().log(LogLevel::INFO, "Configuration loaded from: " + config_file);
     return true;
@@ -135,7 +135,7 @@ bool SNMPConfig::parse_config_value(const std::string& key, const std::string& v
     } else if (key == "log_level") {
         std::string level = value;
         std::transform(level.begin(), level.end(), level.begin(), ::tolower);
-        if (level == "debug" || level == "info" || level == "warning" || 
+        if (level == "debug" || level == "info" || level == "warning" ||
             level == "error" || level == "fatal") {
             log_level_ = level;
         } else {
@@ -165,7 +165,7 @@ bool SNMPConfig::parse_config_value(const std::string& key, const std::string& v
         Logger::get_instance().log(LogLevel::WARNING, "Unknown config key: " + key);
         return false;
     }
-    
+
     return true;
 }
 

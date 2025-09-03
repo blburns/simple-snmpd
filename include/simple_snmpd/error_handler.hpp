@@ -24,13 +24,8 @@
 
 namespace simple_snmpd {
 
-enum class LogLevel {
-    DEBUG = 0,
-    INFO = 1,
-    WARNING = 2,
-    ERROR = 3,
-    FATAL = 4
-};
+// Forward declaration to avoid redefinition
+enum class LogLevel;
 
 class ErrorHandler {
 public:

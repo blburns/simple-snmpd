@@ -24,9 +24,19 @@
 #include <windows.h>
 #include <iphlpapi.h>
 #pragma comment(lib, "iphlpapi.lib")
+#elif __APPLE__
+#include <unistd.h>
+#include <sys/utsname.h>
+#include <sys/sysctl.h>
+#include <sys/time.h>
+#include <ifaddrs.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <mach/mach.h>
 #else
 #include <unistd.h>
 #include <sys/utsname.h>
+#include <sys/sysinfo.h>
 #include <ifaddrs.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -63,10 +73,10 @@ std::string Platform::get_os_version() const {
     OSVERSIONINFOEX osvi;
     ZeroMemory(&osvi, sizeof(OSVERSIONINFOEX));
     osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
-    
+
     if (GetVersionEx((OSVERSIONINFO*)&osvi)) {
-        return std::to_string(osvi.dwMajorVersion) + "." + 
-               std::to_string(osvi.dwMinorVersion) + "." + 
+        return std::to_string(osvi.dwMajorVersion) + "." +
+               std::to_string(osvi.dwMinorVersion) + "." +
                std::to_string(osvi.dwBuildNumber);
     }
     return "Unknown";
@@ -83,7 +93,7 @@ std::string Platform::get_architecture() const {
 #ifdef _WIN32
     SYSTEM_INFO si;
     GetSystemInfo(&si);
-    
+
     switch (si.wProcessorArchitecture) {
         case PROCESSOR_ARCHITECTURE_AMD64:
             return "x86_64";
@@ -126,16 +136,16 @@ std::string Platform::get_hostname() const {
 
 std::vector<std::string> Platform::get_network_interfaces() const {
     std::vector<std::string> interfaces;
-    
+
 #ifdef _WIN32
     // Windows implementation
     ULONG buffer_size = 0;
     GetAdaptersAddresses(AF_UNSPEC, 0, nullptr, nullptr, &buffer_size);
-    
+
     if (buffer_size > 0) {
         std::vector<BYTE> buffer(buffer_size);
         PIP_ADAPTER_ADDRESSES adapters = reinterpret_cast<PIP_ADAPTER_ADDRESSES>(buffer.data());
-        
+
         if (GetAdaptersAddresses(AF_UNSPEC, 0, nullptr, adapters, &buffer_size) == ERROR_SUCCESS) {
             for (PIP_ADAPTER_ADDRESSES adapter = adapters; adapter != nullptr; adapter = adapter->Next) {
                 if (adapter->OperStatus == IfOperStatusUp) {
@@ -156,13 +166,23 @@ std::vector<std::string> Platform::get_network_interfaces() const {
         freeifaddrs(ifaddr);
     }
 #endif
-    
+
     return interfaces;
 }
 
 uint64_t Platform::get_uptime_seconds() const {
 #ifdef _WIN32
     return GetTickCount64() / 1000;
+#elif __APPLE__
+    struct timeval boottime;
+    size_t size = sizeof(boottime);
+    int mib[2] = {CTL_KERN, KERN_BOOTTIME};
+    if (sysctl(mib, 2, &boottime, &size, nullptr, 0) == 0) {
+        struct timeval now;
+        gettimeofday(&now, nullptr);
+        return now.tv_sec - boottime.tv_sec;
+    }
+    return 0;
 #else
     struct sysinfo info;
     if (sysinfo(&info) == 0) {
@@ -190,6 +210,13 @@ uint64_t Platform::get_total_memory() const {
         return mem_status.ullTotalPhys;
     }
     return 0;
+#elif __APPLE__
+    int64_t mem_size;
+    size_t size = sizeof(mem_size);
+    if (sysctl((int[]){CTL_HW, HW_MEMSIZE}, 2, &mem_size, &size, nullptr, 0) == 0) {
+        return static_cast<uint64_t>(mem_size);
+    }
+    return 0;
 #else
     long pages = sysconf(_SC_PHYS_PAGES);
     long page_size = sysconf(_SC_PAGE_SIZE);
@@ -206,6 +233,17 @@ uint64_t Platform::get_free_memory() const {
     mem_status.dwLength = sizeof(mem_status);
     if (GlobalMemoryStatusEx(&mem_status)) {
         return mem_status.ullAvailPhys;
+    }
+    return 0;
+#elif __APPLE__
+    vm_statistics64_data_t vm_stats;
+    mach_msg_type_number_t info_count = HOST_VM_INFO64_COUNT;
+    if (host_statistics64(mach_host_self(), HOST_VM_INFO64, 
+                         reinterpret_cast<host_info64_t>(&vm_stats), &info_count) == KERN_SUCCESS) {
+        vm_size_t page_size;
+        if (host_page_size(mach_host_self(), &page_size) == KERN_SUCCESS) {
+            return static_cast<uint64_t>(vm_stats.free_count) * static_cast<uint64_t>(page_size);
+        }
     }
     return 0;
 #else

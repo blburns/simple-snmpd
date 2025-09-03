@@ -37,10 +37,10 @@ Logger::~Logger() {
 
 void Logger::initialize(LogLevel level, const std::string& log_file_path) {
     std::lock_guard<std::mutex> lock(mutex_);
-    
+
     level_ = level;
     initialized_ = true;
-    
+
     if (!log_file_path.empty()) {
         log_file_.open(log_file_path, std::ios::app);
         if (!log_file_.is_open()) {
@@ -53,20 +53,20 @@ void Logger::log(LogLevel level, const std::string& message) {
     if (!initialized_ || level < level_) {
         return;
     }
-    
+
     std::lock_guard<std::mutex> lock(mutex_);
-    
+
     // Get current time
     auto now = std::chrono::system_clock::now();
     auto time_t = std::chrono::system_clock::to_time_t(now);
     auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
         now.time_since_epoch()) % 1000;
-    
+
     // Format timestamp
     std::ostringstream timestamp;
     timestamp << std::put_time(std::localtime(&time_t), "%Y-%m-%d %H:%M:%S");
     timestamp << "." << std::setfill('0') << std::setw(3) << ms.count();
-    
+
     // Format log level
     std::string level_str;
     switch (level) {
@@ -86,20 +86,20 @@ void Logger::log(LogLevel level, const std::string& message) {
             level_str = "FATAL";
             break;
     }
-    
+
     // Format log message
     std::ostringstream log_entry;
     log_entry << "[" << timestamp.str() << "] [" << level_str << "] " << message;
-    
+
     std::string formatted_message = log_entry.str();
-    
+
     // Output to console
     if (level >= LogLevel::WARNING) {
         std::cerr << formatted_message << std::endl;
     } else {
         std::cout << formatted_message << std::endl;
     }
-    
+
     // Output to log file if open
     if (log_file_.is_open()) {
         log_file_ << formatted_message << std::endl;

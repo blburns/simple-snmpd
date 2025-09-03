@@ -1,0 +1,20 @@
+# Simple SNMP Daemon Configuration - Basic Example
+# This is a basic configuration suitable for development and testing
+
+# Network Configuration
+port=161
+enable_ipv6=true
+
+# Community Configuration (use a secure community string in production)
+community=public
+
+# Connection Limits
+max_connections=50
+timeout_seconds=30
+
+# Logging Configuration
+log_level=debug
+
+# Trap Configuration
+enable_trap=false
+trap_port=162

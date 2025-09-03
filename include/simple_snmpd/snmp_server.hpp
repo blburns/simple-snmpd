@@ -27,6 +27,9 @@
 #include <vector>
 #include <mutex>
 
+// Forward declarations for socket structures
+struct sockaddr_in;
+
 namespace simple_snmpd {
 
 class SNMPServer {
@@ -49,7 +52,7 @@ private:
     void worker_thread();
 
     // Request processing
-    void process_snmp_request(std::shared_ptr<SNMPConnection> connection, 
+    void process_snmp_request(std::shared_ptr<SNMPConnection> connection,
                              const SNMPPacket& request,
                              const struct sockaddr_in& client_addr);
 
