@@ -312,5 +312,5 @@ This checklist tracks the progress of features and tasks outlined in the [ROADMA
 
 ---
 
-*Last Updated: December 2024*  
+*Last Updated: December 2024*
 *Next Review: January 2025*

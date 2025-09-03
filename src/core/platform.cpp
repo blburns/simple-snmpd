@@ -238,7 +238,7 @@ uint64_t Platform::get_free_memory() const {
 #elif __APPLE__
     vm_statistics64_data_t vm_stats;
     mach_msg_type_number_t info_count = HOST_VM_INFO64_COUNT;
-    if (host_statistics64(mach_host_self(), HOST_VM_INFO64, 
+    if (host_statistics64(mach_host_self(), HOST_VM_INFO64,
                          reinterpret_cast<host_info64_t>(&vm_stats), &info_count) == KERN_SUCCESS) {
         vm_size_t page_size;
         if (host_page_size(mach_host_self(), &page_size) == KERN_SUCCESS) {

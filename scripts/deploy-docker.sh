@@ -57,17 +57,17 @@ log_error() {
 # Check Docker availability
 check_docker() {
     log_info "Checking Docker availability..."
-    
+
     if ! command -v docker >/dev/null 2>&1; then
         log_error "Docker is not installed or not in PATH"
         exit 1
     fi
-    
+
     if ! docker info >/dev/null 2>&1; then
         log_error "Docker daemon is not running"
         exit 1
     fi
-    
+
     log_success "Docker is available"
 }
 
@@ -109,17 +109,17 @@ pull_image() {
 # Create necessary directories
 create_directories() {
     log_info "Creating necessary directories..."
-    
+
     mkdir -p "$CONFIG_DIR"
     mkdir -p "$LOG_DIR"
-    
+
     log_success "Directories created"
 }
 
 # Deploy container
 deploy_container() {
     log_info "Deploying container: $CONTAINER_NAME"
-    
+
     local docker_args=(
         --name "$CONTAINER_NAME"
         --detach
@@ -131,7 +131,7 @@ deploy_container() {
         --env "SNMP_COMMUNITY=${SNMP_COMMUNITY:-public}"
         --env "LOG_LEVEL=${LOG_LEVEL:-info}"
     )
-    
+
     # Add health check
     docker_args+=(
         --health-cmd "nc -z localhost 161 || exit 1"
@@ -140,23 +140,23 @@ deploy_container() {
         --health-retries 3
         --health-start-period 40s
     )
-    
+
     docker run "${docker_args[@]}" "${IMAGE_NAME}:${IMAGE_TAG}"
-    
+
     log_success "Container deployed"
 }
 
 # Show container status
 show_status() {
     log_info "Container Status:"
-    
+
     if container_running; then
         log_success "Container is running"
         docker ps --filter "name=$CONTAINER_NAME" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
     else
         log_warning "Container is not running"
     fi
-    
+
     # Show logs
     log_info "Recent logs:"
     docker logs --tail 10 "$CONTAINER_NAME" 2>/dev/null || log_warning "No logs available"
@@ -178,10 +178,10 @@ show_info() {
 # Test SNMP connectivity
 test_snmp() {
     log_info "Testing SNMP connectivity..."
-    
+
     # Wait for container to be ready
     sleep 5
-    
+
     # Test with netcat if available
     if command -v nc >/dev/null 2>&1; then
         if nc -z localhost "$SNMP_PORT"; then
@@ -192,7 +192,7 @@ test_snmp() {
     else
         log_warning "netcat not available, skipping port test"
     fi
-    
+
     # Test with snmpget if available
     if command -v snmpget >/dev/null 2>&1; then
         if snmpget -v2c -c "${SNMP_COMMUNITY:-public}" localhost 1.3.6.1.2.1.1.1.0 >/dev/null 2>&1; then
@@ -208,12 +208,12 @@ test_snmp() {
 # Main function
 main() {
     log_info "Starting Docker deployment for Simple SNMP Daemon"
-    
+
     show_info
-    
+
     check_docker
     create_directories
-    
+
     case "${1:-deploy}" in
         "deploy")
             stop_container
@@ -268,7 +268,7 @@ main() {
             exit 1
             ;;
     esac
-    
+
     log_success "Deployment operation completed!"
 }
 
