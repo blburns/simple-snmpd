@@ -1,0 +1,56 @@
+/*
+ * Simple SNMP Daemon Windows Service Resource File
+ * Copyright 2024 SimpleDaemons
+ * Licensed under Apache 2.0
+ */
+
+#include <windows.h>
+
+// Version information
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION 1,0,0,0
+PRODUCTVERSION 1,0,0,0
+FILEFLAGSMASK VS_FFI_FILEFLAGSMASK
+FILEFLAGS 0x0L
+FILEOS VOS_NT_WINDOWS32
+FILETYPE VFT_APP
+FILESUBTYPE VFT2_UNKNOWN
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904b0"
+        BEGIN
+            VALUE "CompanyName", "SimpleDaemons"
+            VALUE "FileDescription", "Simple SNMP Daemon Service"
+            VALUE "FileVersion", "1.0.0.0"
+            VALUE "InternalName", "simple-snmpd-service"
+            VALUE "LegalCopyright", "Copyright 2024 SimpleDaemons"
+            VALUE "OriginalFilename", "simple-snmpd-service.exe"
+            VALUE "ProductName", "Simple SNMP Daemon"
+            VALUE "ProductVersion", "1.0.0.0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1200
+    END
+END
+
+// Service manifest
+1 RT_MANIFEST "simple-snmpd-service.manifest"
+
+// Icon resource
+IDI_ICON1 ICON "simple-snmpd.ico"
+
+// String table
+STRINGTABLE
+BEGIN
+    IDS_SERVICE_NAME           "SimpleSnmpd"
+    IDS_SERVICE_DISPLAY_NAME   "Simple SNMP Daemon"
+    IDS_SERVICE_DESCRIPTION    "Provides SNMP monitoring services for network devices"
+    IDS_SERVICE_STARTED        "Simple SNMP Daemon service started"
+    IDS_SERVICE_STOPPED        "Simple SNMP Daemon service stopped"
+    IDS_SERVICE_PAUSED         "Simple SNMP Daemon service paused"
+    IDS_SERVICE_CONTINUED      "Simple SNMP Daemon service continued"
+    IDS_SERVICE_ERROR          "Simple SNMP Daemon service error: %1"
+END
