@@ -1,6 +1,7 @@
 #!/bin/bash
 #
 # simple-snmpd    Simple SNMP Daemon init script
+#                 Systemd wrapper with traditional init.d compatibility
 #
 # chkconfig: 2345 20 80
 # description: Simple SNMP Daemon provides SNMP monitoring services
@@ -10,6 +11,10 @@
 #
 # Author: SimpleDaemons
 # License: Apache 2.0
+#
+# This script provides backward compatibility for traditional init.d systems
+# while leveraging systemd when available. It automatically detects the
+# init system and uses the appropriate method.
 
 ### BEGIN INIT INFO
 # Provides: simple-snmpd
@@ -21,14 +26,132 @@
 # Description: Simple SNMP Daemon provides SNMP monitoring services
 ### END INIT INFO
 
-# Source function library
-. /etc/rc.d/init.d/functions
+# Source function library (if available)
+if [ -f /etc/rc.d/init.d/functions ]; then
+    . /etc/rc.d/init.d/functions
+fi
 
-# Source networking configuration
-. /etc/sysconfig/network
+# Source networking configuration (if available)
+if [ -f /etc/sysconfig/network ]; then
+    . /etc/sysconfig/network
+fi
 
-# Check that networking is up
-[ "${NETWORKING}" = "no" ] && exit 6
+# Check that networking is up (if networking config exists)
+[ -n "${NETWORKING}" ] && [ "${NETWORKING}" = "no" ] && exit 6
+
+# Detect init system
+detect_init_system() {
+    if [ -d /run/systemd/system ] || [ -d /var/run/systemd/system ]; then
+        echo "systemd"
+    elif [ -x /sbin/init ] && /sbin/init --version 2>/dev/null | grep -q systemd; then
+        echo "systemd"
+    elif [ -x /bin/systemctl ] && /bin/systemctl --version >/dev/null 2>&1; then
+        echo "systemd"
+    elif [ -x /usr/bin/systemctl ] && /usr/bin/systemctl --version >/dev/null 2>&1; then
+        echo "systemd"
+    else
+        echo "sysv"
+    fi
+}
+
+# Get systemctl command
+get_systemctl() {
+    for cmd in /bin/systemctl /usr/bin/systemctl /sbin/systemctl /usr/sbin/systemctl; do
+        if [ -x "$cmd" ] && "$cmd" --version >/dev/null 2>&1; then
+            echo "$cmd"
+            return 0
+        fi
+    done
+    return 1
+}
+
+# Systemd wrapper functions
+systemd_start() {
+    local systemctl=$(get_systemctl)
+    if [ -n "$systemctl" ]; then
+        echo -n "Starting ${SNMPD_NAME} (via systemd): "
+        if "$systemctl" start simple-snmpd.service >/dev/null 2>&1; then
+            echo "OK"
+            return 0
+        else
+            echo "FAILED"
+            return 1
+        fi
+    fi
+    return 1
+}
+
+systemd_stop() {
+    local systemctl=$(get_systemctl)
+    if [ -n "$systemctl" ]; then
+        echo -n "Stopping ${SNMPD_NAME} (via systemd): "
+        if "$systemctl" stop simple-snmpd.service >/dev/null 2>&1; then
+            echo "OK"
+            return 0
+        else
+            echo "FAILED"
+            return 1
+        fi
+    fi
+    return 1
+}
+
+systemd_restart() {
+    local systemctl=$(get_systemctl)
+    if [ -n "$systemctl" ]; then
+        echo -n "Restarting ${SNMPD_NAME} (via systemd): "
+        if "$systemctl" restart simple-snmpd.service >/dev/null 2>&1; then
+            echo "OK"
+            return 0
+        else
+            echo "FAILED"
+            return 1
+        fi
+    fi
+    return 1
+}
+
+systemd_reload() {
+    local systemctl=$(get_systemctl)
+    if [ -n "$systemctl" ]; then
+        echo -n "Reloading ${SNMPD_NAME} (via systemd): "
+        if "$systemctl" reload simple-snmpd.service >/dev/null 2>&1; then
+            echo "OK"
+            return 0
+        else
+            echo "FAILED"
+            return 1
+        fi
+    fi
+    return 1
+}
+
+systemd_status() {
+    local systemctl=$(get_systemctl)
+    if [ -n "$systemctl" ]; then
+        "$systemctl" status simple-snmpd.service --no-pager -l
+        return $?
+    fi
+    return 1
+}
+
+# Check if systemd service exists
+systemd_service_exists() {
+    local systemctl=$(get_systemctl)
+    if [ -n "$systemctl" ]; then
+        "$systemctl" list-unit-files | grep -q "simple-snmpd.service"
+        return $?
+    fi
+    return 1
+}
+
+# Initialize system detection
+INIT_SYSTEM=$(detect_init_system)
+SYSTEMD_AVAILABLE=false
+
+if [ "$INIT_SYSTEM" = "systemd" ] && systemd_service_exists; then
+    SYSTEMD_AVAILABLE=true
+fi
 
 # SNMP daemon configuration
 SNMPD_NAME="simple-snmpd"
@@ -62,6 +185,13 @@ create_dirs() {
 
 # Start the daemon
 start() {
+    # Use systemd if available
+    if [ "$SYSTEMD_AVAILABLE" = "true" ]; then
+        systemd_start
+        return $?
+    fi
+
+    # Fallback to traditional init.d method
     echo -n "Starting ${SNMPD_NAME}: "
 
     # Create necessary directories
@@ -78,7 +208,13 @@ start() {
     fi
 
     # Start the daemon
-    daemon --user ${SNMPD_USER} --pidfile ${SNMPD_PID} ${SNMPD_BIN} ${SNMPD_ARGS}
+    if command -v daemon >/dev/null 2>&1; then
+        daemon --user ${SNMPD_USER} --pidfile ${SNMPD_PID} ${SNMPD_BIN} ${SNMPD_ARGS}
+    else
+        # Fallback for systems without daemon command
+        start-stop-daemon --start --quiet --pidfile ${SNMPD_PID} \
+            --chuid ${SNMPD_USER} --exec ${SNMPD_BIN} -- ${SNMPD_ARGS}
+    fi
     RETVAL=$?
 
     if [ $RETVAL -eq 0 ]; then
@@ -93,10 +229,22 @@ start() {
 
 # Stop the daemon
 stop() {
+    # Use systemd if available
+    if [ "$SYSTEMD_AVAILABLE" = "true" ]; then
+        systemd_stop
+        return $?
+    fi
+
+    # Fallback to traditional init.d method
     echo -n "Stopping ${SNMPD_NAME}: "
 
     if [ -f ${SNMPD_PID} ]; then
-        killproc -p ${SNMPD_PID} ${SNMPD_BIN}
+        if command -v killproc >/dev/null 2>&1; then
+            killproc -p ${SNMPD_PID} ${SNMPD_BIN}
+        else
+            # Fallback for systems without killproc
+            start-stop-daemon --stop --quiet --pidfile ${SNMPD_PID} --retry=TERM/30/KILL/5
+        fi
         RETVAL=$?
         if [ $RETVAL -eq 0 ]; then
             rm -f ${SNMPD_PID}
@@ -115,6 +263,13 @@ stop() {
 
 # Restart the daemon
 restart() {
+    # Use systemd if available
+    if [ "$SYSTEMD_AVAILABLE" = "true" ]; then
+        systemd_restart
+        return $?
+    fi
+
+    # Fallback to traditional init.d method
     stop
     sleep 2
     start
@@ -122,6 +277,13 @@ restart() {
 
 # Reload configuration
 reload() {
+    # Use systemd if available
+    if [ "$SYSTEMD_AVAILABLE" = "true" ]; then
+        systemd_reload
+        return $?
+    fi
+
+    # Fallback to traditional init.d method
     echo -n "Reloading ${SNMPD_NAME}: "
 
     if [ -f ${SNMPD_PID} ]; then
@@ -140,6 +302,13 @@ reload() {
 
 # Check status
 status() {
+    # Use systemd if available
+    if [ "$SYSTEMD_AVAILABLE" = "true" ]; then
+        systemd_status
+        return $?
+    fi
+
+    # Fallback to traditional init.d method
     if [ -f ${SNMPD_PID} ]; then
         if kill -0 $(cat ${SNMPD_PID}) 2>/dev/null; then
             echo "${SNMPD_NAME} is running (pid: $(cat ${SNMPD_PID}))"
@@ -174,14 +343,40 @@ configtest() {
 
 # Show usage
 usage() {
-    echo "Usage: $0 {start|stop|restart|reload|status|configtest}"
+    echo "Usage: $0 {start|stop|restart|reload|status|configtest|info}"
     echo "  start       - Start the SNMP daemon"
     echo "  stop        - Stop the SNMP daemon"
     echo "  restart     - Restart the SNMP daemon"
     echo "  reload      - Reload configuration"
     echo "  status      - Show daemon status"
     echo "  configtest  - Test configuration file"
+    echo "  info        - Show system information"
     exit 1
+}
+
+# Show system information
+info() {
+    echo "Simple SNMP Daemon Service Information"
+    echo "======================================"
+    echo "Init System: $INIT_SYSTEM"
+    echo "Systemd Available: $SYSTEMD_AVAILABLE"
+    echo "Binary: $SNMPD_BIN"
+    echo "Config: $SNMPD_CONF"
+    echo "PID File: $SNMPD_PID"
+    echo "User: $SNMPD_USER"
+    echo "Group: $SNMPD_GROUP"
+    echo ""
+
+    if [ "$SYSTEMD_AVAILABLE" = "true" ]; then
+        local systemctl=$(get_systemctl)
+        echo "Systemd Service Status:"
+        "$systemctl" is-enabled simple-snmpd.service 2>/dev/null || echo "  Not enabled"
+        "$systemctl" is-active simple-snmpd.service 2>/dev/null || echo "  Not active"
+    fi
+
+    echo ""
+    echo "Configuration Test:"
+    configtest
 }
 
 # Main script logic
@@ -203,6 +398,9 @@ case "$1" in
         ;;
     configtest)
         configtest
+        ;;
+    info)
+        info
         ;;
     *)
         usage
