@@ -1,0 +1,212 @@
+#!/bin/bash
+#
+# simple-snmpd    Simple SNMP Daemon init script
+#
+# chkconfig: 2345 20 80
+# description: Simple SNMP Daemon provides SNMP monitoring services
+# processname: simple-snmpd
+# pidfile: /var/run/simple-snmpd/simple-snmpd.pid
+# config: /etc/simple-snmpd/simple-snmpd.conf
+#
+# Author: SimpleDaemons
+# License: Apache 2.0
+
+### BEGIN INIT INFO
+# Provides: simple-snmpd
+# Required-Start: $network $remote_fs $syslog
+# Required-Stop: $network $remote_fs $syslog
+# Default-Start: 2 3 4 5
+# Default-Stop: 0 1 6
+# Short-Description: Simple SNMP Daemon
+# Description: Simple SNMP Daemon provides SNMP monitoring services
+### END INIT INFO
+
+# Source function library
+. /etc/rc.d/init.d/functions
+
+# Source networking configuration
+. /etc/sysconfig/network
+
+# Check that networking is up
+[ "${NETWORKING}" = "no" ] && exit 6
+
+# SNMP daemon configuration
+SNMPD_NAME="simple-snmpd"
+SNMPD_BIN="/usr/sbin/simple-snmpd"
+SNMPD_CONF="/etc/simple-snmpd/simple-snmpd.conf"
+SNMPD_PID="/var/run/simple-snmpd/simple-snmpd.pid"
+SNMPD_LOCK="/var/lock/subsys/simple-snmpd"
+SNMPD_LOG="/var/log/simple-snmpd/simple-snmpd.log"
+SNMPD_USER="snmp"
+SNMPD_GROUP="snmp"
+SNMPD_ARGS="-c ${SNMPD_CONF}"
+
+# Check if binary exists
+[ -x ${SNMPD_BIN} ] || exit 5
+
+# Check if config exists
+[ -f ${SNMPD_CONF} ] || exit 6
+
+# Create necessary directories
+create_dirs() {
+    mkdir -p /var/run/simple-snmpd
+    mkdir -p /var/log/simple-snmpd
+    mkdir -p /var/lib/simple-snmpd
+    chown ${SNMPD_USER}:${SNMPD_GROUP} /var/run/simple-snmpd
+    chown ${SNMPD_USER}:${SNMPD_GROUP} /var/log/simple-snmpd
+    chown ${SNMPD_USER}:${SNMPD_GROUP} /var/lib/simple-snmpd
+    chmod 755 /var/run/simple-snmpd
+    chmod 755 /var/log/simple-snmpd
+    chmod 755 /var/lib/simple-snmpd
+}
+
+# Start the daemon
+start() {
+    echo -n "Starting ${SNMPD_NAME}: "
+
+    # Create necessary directories
+    create_dirs
+
+    # Check if already running
+    if [ -f ${SNMPD_PID} ]; then
+        if kill -0 $(cat ${SNMPD_PID}) 2>/dev/null; then
+            echo "already running"
+            return 1
+        else
+            rm -f ${SNMPD_PID}
+        fi
+    fi
+
+    # Start the daemon
+    daemon --user ${SNMPD_USER} --pidfile ${SNMPD_PID} ${SNMPD_BIN} ${SNMPD_ARGS}
+    RETVAL=$?
+
+    if [ $RETVAL -eq 0 ]; then
+        echo "OK"
+        touch ${SNMPD_LOCK}
+    else
+        echo "FAILED"
+    fi
+
+    return $RETVAL
+}
+
+# Stop the daemon
+stop() {
+    echo -n "Stopping ${SNMPD_NAME}: "
+
+    if [ -f ${SNMPD_PID} ]; then
+        killproc -p ${SNMPD_PID} ${SNMPD_BIN}
+        RETVAL=$?
+        if [ $RETVAL -eq 0 ]; then
+            rm -f ${SNMPD_PID}
+            rm -f ${SNMPD_LOCK}
+            echo "OK"
+        else
+            echo "FAILED"
+        fi
+    else
+        echo "not running"
+        RETVAL=0
+    fi
+
+    return $RETVAL
+}
+
+# Restart the daemon
+restart() {
+    stop
+    sleep 2
+    start
+}
+
+# Reload configuration
+reload() {
+    echo -n "Reloading ${SNMPD_NAME}: "
+
+    if [ -f ${SNMPD_PID} ]; then
+        if kill -HUP $(cat ${SNMPD_PID}) 2>/dev/null; then
+            echo "OK"
+            return 0
+        else
+            echo "FAILED"
+            return 1
+        fi
+    else
+        echo "not running"
+        return 1
+    fi
+}
+
+# Check status
+status() {
+    if [ -f ${SNMPD_PID} ]; then
+        if kill -0 $(cat ${SNMPD_PID}) 2>/dev/null; then
+            echo "${SNMPD_NAME} is running (pid: $(cat ${SNMPD_PID}))"
+            return 0
+        else
+            echo "${SNMPD_NAME} is not running (stale pid file)"
+            return 1
+        fi
+    else
+        echo "${SNMPD_NAME} is not running"
+        return 3
+    fi
+}
+
+# Check configuration
+configtest() {
+    echo -n "Testing ${SNMPD_NAME} configuration: "
+
+    if [ -f ${SNMPD_CONF} ]; then
+        if ${SNMPD_BIN} -t -c ${SNMPD_CONF} >/dev/null 2>&1; then
+            echo "OK"
+            return 0
+        else
+            echo "FAILED"
+            return 1
+        fi
+    else
+        echo "configuration file not found"
+        return 1
+    fi
+}
+
+# Show usage
+usage() {
+    echo "Usage: $0 {start|stop|restart|reload|status|configtest}"
+    echo "  start       - Start the SNMP daemon"
+    echo "  stop        - Stop the SNMP daemon"
+    echo "  restart     - Restart the SNMP daemon"
+    echo "  reload      - Reload configuration"
+    echo "  status      - Show daemon status"
+    echo "  configtest  - Test configuration file"
+    exit 1
+}
+
+# Main script logic
+case "$1" in
+    start)
+        start
+        ;;
+    stop)
+        stop
+        ;;
+    restart)
+        restart
+        ;;
+    reload)
+        reload
+        ;;
+    status)
+        status
+        ;;
+    configtest)
+        configtest
+        ;;
+    *)
+        usage
+        ;;
+esac
+
+exit $?

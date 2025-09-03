@@ -1,0 +1,59 @@
+[Unit]
+Description=Simple SNMP Daemon
+Documentation=man:simple-snmpd(8)
+After=network.target
+Wants=network.target
+
+[Service]
+Type=notify
+ExecStart=/usr/sbin/simple-snmpd -c /etc/simple-snmpd/simple-snmpd.conf
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=always
+RestartSec=3
+User=snmp
+Group=snmp
+RuntimeDirectory=simple-snmpd
+RuntimeDirectoryMode=0755
+StateDirectory=simple-snmpd
+StateDirectoryMode=0755
+LogDirectory=simple-snmpd
+LogDirectoryMode=0755
+PIDFile=/run/simple-snmpd/simple-snmpd.pid
+LimitNOFILE=65536
+LimitNPROC=4096
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/simple-snmpd /var/log/simple-snmpd
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+MemoryDenyWriteExecute=true
+LockPersonality=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=true
+SystemCallArchitectures=native
+SystemCallFilter=@system-service @clock @network-io @basic-io @chown @setuid @memlock @keyring @timer @cpu-emulation @debug @obsolete @privileged @resources
+SystemCallErrorNumber=EPERM
+IPAddressDeny=
+IPAddressAllow=localhost
+IPAddressAllow=127.0.0.1
+IPAddressAllow=::1
+IPAddressAllow=0.0.0.0/0
+IPAddressAllow=::/0
+
+[Install]
+WantedBy=multi-user.target
+Also=simple-snmpd.socket
+
+# Socket activation
+[Socket]
+ListenDatagram=161
+BindIPv6Only=both
+SocketUser=snmp
+SocketGroup=snmp
+SocketMode=0644
