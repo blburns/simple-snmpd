@@ -6,7 +6,7 @@ param(
     [Parameter(Position=0)]
     [ValidateSet("install", "uninstall", "start", "stop", "restart", "status", "config", "test", "logs", "monitor")]
     [string]$Action = "install",
-    
+
     [switch]$Force,
     [switch]$Verbose
 )
@@ -88,14 +88,14 @@ function Show-Usage {
 # Install the service
 function Install-Service {
     Write-Info "Installing Simple SNMP Daemon service..."
-    
+
     # Check if binary exists
     if (-not (Test-Path $BinaryPath)) {
         Write-Error "Service binary not found at $BinaryPath"
         Write-Error "Please build the service binary first"
         exit 1
     }
-    
+
     # Check if service already exists
     $existingService = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
     if ($existingService) {
@@ -109,22 +109,22 @@ function Install-Service {
         Write-Info "Uninstalling existing service..."
         Uninstall-Service
     }
-    
+
     # Create service
     Write-Info "Creating service $ServiceName..."
     try {
         New-Service -Name $ServiceName -BinaryPathName $BinaryPath -DisplayName $ServiceDisplayName -Description $ServiceDescription -StartupType Automatic -ErrorAction Stop
-        
+
         # Configure service
         $service = Get-WmiObject -Class Win32_Service -Filter "Name='$ServiceName'"
         $service.Change($null, $null, $null, $null, $null, $null, "Tcpip", $null, $null, $null, $null)
-        
+
         # Set service to run as Network Service
         $service.Change($null, $null, $null, $null, $null, $null, $null, "NT AUTHORITY\NetworkService", $null, $null, $null)
-        
+
         # Configure failure actions
         sc.exe failure $ServiceName reset=86400 actions=restart/30000/restart/60000/restart/120000
-        
+
         Write-Success "Service installed successfully!"
         Write-Info "Next steps:"
         Write-Info "1. Run '.\install-service.ps1 config' to create configuration files"
@@ -140,7 +140,7 @@ function Install-Service {
 # Uninstall the service
 function Uninstall-Service {
     Write-Info "Uninstalling Simple SNMP Daemon service..."
-    
+
     $service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
     if ($service) {
         # Stop service if running
@@ -149,7 +149,7 @@ function Uninstall-Service {
             Stop-Service -Name $ServiceName -Force
             $service.WaitForStatus("Stopped", (New-TimeSpan -Seconds 30))
         }
-        
+
         # Remove service
         Write-Info "Removing service..."
         try {
@@ -205,7 +205,7 @@ function Show-Status {
     Write-Host "Simple SNMP Daemon Service Status" -ForegroundColor $Colors.Cyan
     Write-Host "==================================" -ForegroundColor $Colors.Cyan
     Write-Host ""
-    
+
     $service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
     if ($service) {
         Write-Host "Service Name: $($service.Name)"
@@ -213,14 +213,14 @@ function Show-Status {
         Write-Host "Status: $($service.Status)"
         Write-Host "Start Type: $($service.StartType)"
         Write-Host ""
-        
+
         # Show service configuration
         $wmiService = Get-WmiObject -Class Win32_Service -Filter "Name='$ServiceName'"
         Write-Host "Binary Path: $($wmiService.PathName)"
         Write-Host "Service Account: $($wmiService.StartName)"
         Write-Host "Dependencies: $($wmiService.ServiceDependencies -join ', ')"
         Write-Host ""
-        
+
         # Show port status
         $port161 = Get-NetTCPConnection -LocalPort 161 -ErrorAction SilentlyContinue
         if ($port161) {
@@ -228,7 +228,7 @@ function Show-Status {
         } else {
             Write-Warning "Port 161 is not listening"
         }
-        
+
         # Show recent events
         Write-Host ""
         Write-Host "Recent Service Events:"
@@ -244,7 +244,7 @@ function Show-Status {
 # Create configuration
 function New-Configuration {
     Write-Info "Creating Simple SNMP Daemon configuration..."
-    
+
     # Create directories
     Write-Info "Creating directories..."
     @($ConfigDir, $LogDir, $DataDir, $MibDir) | ForEach-Object {
@@ -252,7 +252,7 @@ function New-Configuration {
             New-Item -ItemType Directory -Path $_ -Force | Out-Null
         }
     }
-    
+
     # Create configuration file
     Write-Info "Creating configuration file..."
     $configContent = @"
@@ -313,7 +313,7 @@ system_uptime = true
 enable_traps = true
 trap_port = 162
 trap_community = public
-trap_destinations = 
+trap_destinations =
 
 # Monitoring configuration
 enable_system_monitoring = true
@@ -328,9 +328,9 @@ wmi_namespace = root\cimv2
 enable_performance_counters = true
 performance_counter_interval = 30
 "@
-    
+
     $configContent | Out-File -FilePath "$ConfigDir\simple-snmpd.conf" -Encoding UTF8
-    
+
     # Create user database file
     Write-Info "Creating user database file..."
     $userContent = @"
@@ -342,7 +342,7 @@ performance_counter_interval = 30
 # readonly:SHA:readpass::
 "@
     $userContent | Out-File -FilePath "$ConfigDir\users.conf" -Encoding UTF8
-    
+
     # Create access control file
     Write-Info "Creating access control file..."
     $accessContent = @"
@@ -354,12 +354,12 @@ performance_counter_interval = 30
 # readwrite:usm:authPriv:system:system:system
 "@
     $accessContent | Out-File -FilePath "$ConfigDir\access.conf" -Encoding UTF8
-    
+
     # Create log files
     Write-Info "Creating log files..."
     "" | Out-File -FilePath "$LogDir\simple-snmpd.log" -Encoding UTF8
     "" | Out-File -FilePath "$LogDir\simple-snmpd.error.log" -Encoding UTF8
-    
+
     # Set permissions
     Write-Info "Setting permissions..."
     $directories = @($ConfigDir, $LogDir, $DataDir, $MibDir)
@@ -367,7 +367,7 @@ performance_counter_interval = 30
         icacls $dir /grant "NT AUTHORITY\SYSTEM:(OI)(CI)F" /T | Out-Null
         icacls $dir /grant "NT AUTHORITY\NetworkService:(OI)(CI)F" /T | Out-Null
     }
-    
+
     Write-Success "Configuration created successfully!"
     Write-Info "Configuration file: $ConfigDir\simple-snmpd.conf"
     Write-Info "User database: $ConfigDir\users.conf"
@@ -380,7 +380,7 @@ performance_counter_interval = 30
 # Test SNMP connectivity
 function Test-SNMPConnectivity {
     Write-Info "Testing SNMP connectivity..."
-    
+
     # Check if service is running
     $service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
     if (-not $service -or $service.Status -ne "Running") {
@@ -388,7 +388,7 @@ function Test-SNMPConnectivity {
         Write-Error "Please start the service first with: .\install-service.ps1 start"
         return
     }
-    
+
     # Test port connectivity
     Write-Info "Testing port connectivity..."
     $port161 = Get-NetTCPConnection -LocalPort 161 -ErrorAction SilentlyContinue
@@ -397,7 +397,7 @@ function Test-SNMPConnectivity {
     } else {
         Write-Warning "Port 161 is not listening"
     }
-    
+
     # Test with snmpget if available
     Write-Info "Testing SNMP GET request..."
     try {
@@ -414,7 +414,7 @@ function Test-SNMPConnectivity {
     catch {
         Write-Warning "snmpget not available or request failed"
     }
-    
+
     # Test with snmpwalk if available
     Write-Info "Testing SNMP WALK request..."
     try {
@@ -428,14 +428,14 @@ function Test-SNMPConnectivity {
     catch {
         Write-Warning "snmptable not available or request failed"
     }
-    
+
     Write-Success "SNMP connectivity test completed!"
 }
 
 # Show service logs
 function Show-Logs {
     Write-Info "Showing recent service logs..."
-    
+
     if (Test-Path "$LogDir\simple-snmpd.log") {
         Write-Host ""
         Write-Host "Recent Log Entries:" -ForegroundColor $Colors.Cyan
@@ -443,7 +443,7 @@ function Show-Logs {
     } else {
         Write-Warning "Log file not found: $LogDir\simple-snmpd.log"
     }
-    
+
     if (Test-Path "$LogDir\simple-snmpd.error.log") {
         Write-Host ""
         Write-Host "Recent Error Log Entries:" -ForegroundColor $Colors.Cyan
@@ -455,14 +455,14 @@ function Show-Logs {
 function Start-Monitoring {
     Write-Info "Starting real-time service monitoring..."
     Write-Info "Press Ctrl+C to stop monitoring"
-    
+
     while ($true) {
         Clear-Host
         Write-Host "Simple SNMP Daemon Service Monitor" -ForegroundColor $Colors.Cyan
         Write-Host "===================================" -ForegroundColor $Colors.Cyan
         Write-Host "Time: $(Get-Date)" -ForegroundColor $Colors.White
         Write-Host ""
-        
+
         # Service status
         $service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
         if ($service) {
@@ -470,18 +470,18 @@ function Start-Monitoring {
         } else {
             Write-Host "Service Status: Not Found" -ForegroundColor $Colors.Red
         }
-        
+
         # Port status
         $port161 = Get-NetTCPConnection -LocalPort 161 -ErrorAction SilentlyContinue
         Write-Host "Port 161: $(if ($port161) { 'Listening' } else { 'Not Listening' })" -ForegroundColor $(if ($port161) { $Colors.Green } else { $Colors.Red })
-        
+
         # Recent log entries
         if (Test-Path "$LogDir\simple-snmpd.log") {
             Write-Host ""
             Write-Host "Recent Log Entries:" -ForegroundColor $Colors.Cyan
             Get-Content "$LogDir\simple-snmpd.log" -Tail 5 | ForEach-Object { Write-Host "  $_" }
         }
-        
+
         Start-Sleep -Seconds 5
     }
 }

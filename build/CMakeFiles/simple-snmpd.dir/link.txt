@@ -1,1 +1,0 @@
-/Library/Developer/CommandLineTools/usr/bin/c++  -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX13.1.sdk -mmacosx-version-min=12.0 -Wl,-search_paths_first -Wl,-headerpad_max_install_names "CMakeFiles/simple-snmpd.dir/src/main.cpp.o" -o bin/simple-snmpd  lib/libsimple-snmpd-core.a -framework Security -framework CoreFoundation -framework SystemConfiguration

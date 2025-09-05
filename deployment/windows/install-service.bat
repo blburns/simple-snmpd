@@ -277,7 +277,7 @@ echo # Trap configuration
 echo enable_traps = true
 echo trap_port = 162
 echo trap_community = public
-echo trap_destinations = 
+echo trap_destinations =
 echo.
 echo # Monitoring configuration
 echo enable_system_monitoring = true

@@ -56,7 +56,7 @@ if exist "%VSWHERE%" (
 
 if defined VS_INSTALL_PATH (
     call :log_success "Visual Studio found at: %VS_INSTALL_PATH%"
-    
+
     REM Set up Visual Studio environment
     set "VS_DEVCMD=%VS_INSTALL_PATH%\Common7\Tools\VsDevCmd.bat"
     if exist "%VS_DEVCMD%" (
@@ -68,7 +68,7 @@ if defined VS_INSTALL_PATH (
     )
 ) else (
     call :log_warning "Visual Studio not found, trying with system compiler..."
-    
+
     REM Check for cl.exe in PATH
     where cl.exe >nul 2>&1
     if %errorLevel% neq 0 (

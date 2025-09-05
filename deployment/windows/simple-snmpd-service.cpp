@@ -38,7 +38,7 @@ int wmain(int argc, wchar_t* argv[]) {
         // Console mode
         std::wcout << L"Simple SNMP Daemon - Console Mode" << std::endl;
         std::wcout << L"Press Ctrl+C to stop..." << std::endl;
-        
+
         if (StartSNMPDaemon()) {
             // Wait for Ctrl+C
             SetConsoleCtrlHandler([](DWORD ctrlType) -> BOOL {
@@ -48,25 +48,25 @@ int wmain(int argc, wchar_t* argv[]) {
                 }
                 return FALSE;
             }, TRUE);
-            
+
             // Wait for process to exit
             WaitForSingleObject(g_ProcessInfo.hProcess, INFINITE);
         }
-        
+
         return 0;
     }
-    
+
     // Service mode
     SERVICE_TABLE_ENTRY serviceTable[] = {
         { SERVICE_NAME, ServiceMain },
         { NULL, NULL }
     };
-    
+
     if (!StartServiceCtrlDispatcher(serviceTable)) {
         LogEvent(L"StartServiceCtrlDispatcher failed: " + std::to_wstring(GetLastError()), EVENTLOG_ERROR_TYPE);
         return 1;
     }
-    
+
     return 0;
 }
 
@@ -77,18 +77,18 @@ void WINAPI ServiceMain(DWORD argc, LPTSTR* argv) {
         LogEvent(L"RegisterServiceCtrlHandler failed: " + std::to_wstring(GetLastError()), EVENTLOG_ERROR_TYPE);
         return;
     }
-    
+
     // Initialize service status
     g_ServiceStatus.dwServiceType = SERVICE_WIN32_OWN_PROCESS;
     g_ServiceStatus.dwServiceSpecificExitCode = 0;
-    
+
     // Report initial status
     g_ServiceStatus.dwCurrentState = SERVICE_START_PENDING;
     g_ServiceStatus.dwWin32ExitCode = 0;
     g_ServiceStatus.dwCheckPoint = 0;
     g_ServiceStatus.dwWaitHint = 3000;
     SetServiceStatus(g_StatusHandle, &g_ServiceStatus);
-    
+
     // Create stop event
     g_ServiceStopEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
     if (g_ServiceStopEvent == NULL) {
@@ -98,7 +98,7 @@ void WINAPI ServiceMain(DWORD argc, LPTSTR* argv) {
         SetServiceStatus(g_StatusHandle, &g_ServiceStatus);
         return;
     }
-    
+
     // Start worker thread
     HANDLE hThread = CreateThread(NULL, 0, ServiceWorkerThread, NULL, 0, NULL);
     if (hThread == NULL) {
@@ -109,27 +109,27 @@ void WINAPI ServiceMain(DWORD argc, LPTSTR* argv) {
         SetServiceStatus(g_StatusHandle, &g_ServiceStatus);
         return;
     }
-    
+
     // Report running status
     g_ServiceStatus.dwCurrentState = SERVICE_RUNNING;
     g_ServiceStatus.dwCheckPoint = 0;
     g_ServiceStatus.dwWaitHint = 0;
     SetServiceStatus(g_StatusHandle, &g_ServiceStatus);
-    
+
     LogEvent(L"Simple SNMP Daemon service started successfully");
-    
+
     // Wait for stop event
     WaitForSingleObject(g_ServiceStopEvent, INFINITE);
-    
+
     // Cleanup
     CloseHandle(hThread);
     CloseHandle(g_ServiceStopEvent);
-    
+
     // Report stopped status
     g_ServiceStatus.dwCurrentState = SERVICE_STOPPED;
     g_ServiceStatus.dwWin32ExitCode = 0;
     SetServiceStatus(g_StatusHandle, &g_ServiceStatus);
-    
+
     LogEvent(L"Simple SNMP Daemon service stopped");
 }
 
@@ -142,27 +142,27 @@ void WINAPI ServiceCtrlHandler(DWORD ctrl) {
             g_ServiceStatus.dwCheckPoint = 0;
             g_ServiceStatus.dwWaitHint = 5000;
             SetServiceStatus(g_StatusHandle, &g_ServiceStatus);
-            
+
             StopSNMPDaemon();
             SetEvent(g_ServiceStopEvent);
             break;
-            
+
         case SERVICE_CONTROL_PAUSE:
             LogEvent(L"Service pause requested");
             g_ServiceStatus.dwCurrentState = SERVICE_PAUSED;
             SetServiceStatus(g_StatusHandle, &g_ServiceStatus);
             break;
-            
+
         case SERVICE_CONTROL_CONTINUE:
             LogEvent(L"Service continue requested");
             g_ServiceStatus.dwCurrentState = SERVICE_RUNNING;
             SetServiceStatus(g_StatusHandle, &g_ServiceStatus);
             break;
-            
+
         case SERVICE_CONTROL_INTERROGATE:
             SetServiceStatus(g_StatusHandle, &g_ServiceStatus);
             break;
-            
+
         case SERVICE_CONTROL_SHUTDOWN:
             LogEvent(L"System shutdown - stopping service");
             g_ServiceStatus.dwCurrentState = SERVICE_STOP_PENDING;
@@ -170,7 +170,7 @@ void WINAPI ServiceCtrlHandler(DWORD ctrl) {
             StopSNMPDaemon();
             SetEvent(g_ServiceStopEvent);
             break;
-            
+
         default:
             break;
     }
@@ -186,7 +186,7 @@ DWORD WINAPI ServiceWorkerThread(LPVOID lpParam) {
         SetServiceStatus(g_StatusHandle, &g_ServiceStatus);
         return 1;
     }
-    
+
     // Monitor the daemon process
     while (WaitForSingleObject(g_ServiceStopEvent, 1000) == WAIT_TIMEOUT) {
         if (g_ProcessInfo.hProcess && WaitForSingleObject(g_ProcessInfo.hProcess, 0) == WAIT_OBJECT_0) {
@@ -194,7 +194,7 @@ DWORD WINAPI ServiceWorkerThread(LPVOID lpParam) {
             break;
         }
     }
-    
+
     return 0;
 }
 
@@ -203,7 +203,7 @@ bool StartSNMPDaemon() {
     // Get the path to the SNMP daemon executable
     wchar_t exePath[MAX_PATH];
     GetModuleFileName(NULL, exePath, MAX_PATH);
-    
+
     // Replace service wrapper with actual daemon
     std::wstring daemonPath = exePath;
     size_t pos = daemonPath.find(L"-service.exe");
@@ -212,20 +212,20 @@ bool StartSNMPDaemon() {
     } else {
         daemonPath = L"simple-snmpd.exe";
     }
-    
+
     // Check if daemon exists
     if (!std::filesystem::exists(daemonPath)) {
         LogEvent(L"SNMP daemon executable not found: " + daemonPath, EVENTLOG_ERROR_TYPE);
         return false;
     }
-    
+
     // Prepare command line
     std::wstring cmdLine = L"\"" + daemonPath + L"\" --service";
-    
+
     // Create process
     STARTUPINFO startupInfo = {0};
     startupInfo.cb = sizeof(startupInfo);
-    
+
     if (!CreateProcess(
         daemonPath.c_str(),
         &cmdLine[0],
@@ -241,7 +241,7 @@ bool StartSNMPDaemon() {
         LogEvent(L"Failed to create SNMP daemon process: " + std::to_wstring(GetLastError()), EVENTLOG_ERROR_TYPE);
         return false;
     }
-    
+
     LogEvent(L"SNMP daemon process started with PID: " + std::to_wstring(g_ProcessInfo.dwProcessId));
     return true;
 }
@@ -250,20 +250,20 @@ bool StartSNMPDaemon() {
 void StopSNMPDaemon() {
     if (g_ProcessInfo.hProcess) {
         LogEvent(L"Stopping SNMP daemon process...");
-        
+
         // Try graceful shutdown first
         if (TerminateProcess(g_ProcessInfo.hProcess, 0)) {
             // Wait for process to exit
             WaitForSingleObject(g_ProcessInfo.hProcess, 5000);
         }
-        
+
         // Cleanup handles
         CloseHandle(g_ProcessInfo.hProcess);
         CloseHandle(g_ProcessInfo.hThread);
-        
+
         g_ProcessInfo.hProcess = NULL;
         g_ProcessInfo.hThread = NULL;
-        
+
         LogEvent(L"SNMP daemon process stopped");
     }
 }
