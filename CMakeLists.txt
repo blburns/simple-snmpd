@@ -50,6 +50,7 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
 # Find required packages
 find_package(PkgConfig REQUIRED)
+find_package(OpenSSL REQUIRED)
 
 # Platform-specific library handling
 if(PLATFORM_MACOS)
@@ -85,6 +86,9 @@ set(SOURCES
     src/core/snmp_config.cpp
     src/core/snmp_mib.cpp
     src/core/snmp_security.cpp
+    src/core/snmp_v3_usm.cpp
+    src/core/snmp_v3_vacm.cpp
+    src/core/snmp_v3_packet.cpp
     src/core/logger.cpp
     src/core/error_handler.cpp
 )
@@ -97,6 +101,9 @@ set(CORE_SOURCES
     src/core/snmp_config.cpp
     src/core/snmp_mib.cpp
     src/core/snmp_security.cpp
+    src/core/snmp_v3_usm.cpp
+    src/core/snmp_v3_vacm.cpp
+    src/core/snmp_v3_packet.cpp
     src/core/logger.cpp
     src/core/platform.cpp
     src/core/error_handler.cpp
@@ -110,6 +117,9 @@ set(HEADERS
     include/simple_snmpd/snmp_config.hpp
     include/simple_snmpd/snmp_mib.hpp
     include/simple_snmpd/snmp_security.hpp
+    include/simple_snmpd/snmp_v3_usm.hpp
+    include/simple_snmpd/snmp_v3_vacm.hpp
+    include/simple_snmpd/snmp_v3_packet.hpp
     include/simple_snmpd/logger.hpp
     include/simple_snmpd/platform.hpp
     include/simple_snmpd/error_handler.hpp
@@ -119,7 +129,7 @@ set(HEADERS
 add_library(simple-snmpd-core STATIC ${CORE_SOURCES} ${HEADERS})
 
 # Link libraries for core library
-target_link_libraries(simple-snmpd-core ${PLATFORM_LIBRARIES})
+target_link_libraries(simple-snmpd-core ${PLATFORM_LIBRARIES} OpenSSL::SSL OpenSSL::Crypto)
 
 # Set properties for core library
 set_target_properties(simple-snmpd-core PROPERTIES
