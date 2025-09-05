@@ -61,6 +61,8 @@ private:
     void process_get_next_request(const SNMPPacket& request, SNMPPacket& response);
     void process_get_bulk_request(const SNMPPacket& request, SNMPPacket& response);
     void process_set_request(const SNMPPacket& request, SNMPPacket& response);
+    void process_trap_v1(const SNMPPacket& request, SNMPPacket& response);
+    void process_trap_v2(const SNMPPacket& request, SNMPPacket& response);
 
     // Response handling
     void send_response(const SNMPPacket& response, const struct sockaddr_in& client_addr);

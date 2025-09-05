@@ -21,6 +21,7 @@
 #include "simple_snmpd/error_handler.hpp"
 #include "simple_snmpd/platform.hpp"
 #include "simple_snmpd/snmp_mib.hpp"
+#include "simple_snmpd/snmp_security.hpp"
 #include <thread>
 #include <chrono>
 #include <algorithm>
@@ -47,6 +48,9 @@ SNMPServer::SNMPServer(const SNMPConfig& config)
     , thread_pool_size_(4) {
     // Initialize MIB manager
     MIBManager::get_instance().initialize_standard_mibs();
+    
+    // Initialize security manager
+    SecurityManager::get_instance().initialize_defaults();
 }
 
 SNMPServer::~SNMPServer() {
@@ -222,9 +226,25 @@ void SNMPServer::process_snmp_request(std::shared_ptr<SNMPConnection> connection
     Logger::get_instance().log(LogLevel::DEBUG, "Processing SNMP request from " +
                               connection->get_client_address());
 
-    // Validate community string
-    if (request.get_community() != config_.get_community()) {
-        Logger::get_instance().log(LogLevel::WARNING, "Invalid community string from " +
+    // Check rate limiting
+    if (!SecurityManager::get_instance().check_rate_limit(connection->get_client_address())) {
+        Logger::get_instance().log(LogLevel::WARNING, "Rate limit exceeded for " +
+                                  connection->get_client_address());
+        return;
+    }
+
+    // Check IP access
+    if (!SecurityManager::get_instance().is_ip_allowed(connection->get_client_address())) {
+        Logger::get_instance().log(LogLevel::WARNING, "Access denied for IP " +
+                                  connection->get_client_address());
+        return;
+    }
+
+    // Validate community string and access
+    if (!SecurityManager::get_instance().is_access_allowed(request.get_community(), 
+                                                          connection->get_client_address())) {
+        Logger::get_instance().log(LogLevel::WARNING, "Access denied for community " +
+                                  request.get_community() + " from " +
                                   connection->get_client_address());
         return;
     }
@@ -244,10 +264,34 @@ void SNMPServer::process_snmp_request(std::shared_ptr<SNMPConnection> connection
             process_get_next_request(request, response);
             break;
         case SNMP_PDU_GET_BULK_REQUEST:
-            process_get_bulk_request(request, response);
+            // GET-BULK is only supported in SNMP v2c and v3
+            if (request.get_version() == SNMP_VERSION_2C || request.get_version() == SNMP_VERSION_3) {
+                process_get_bulk_request(request, response);
+            } else {
+                Logger::get_instance().log(LogLevel::WARNING, "GET-BULK not supported in SNMP v1");
+                response.set_error_status(SNMP_ERROR_NO_SUCH_NAME);
+            }
             break;
         case SNMP_PDU_SET_REQUEST:
             process_set_request(request, response);
+            break;
+        case SNMP_PDU_TRAP:
+            // Handle SNMP v1 traps
+            if (request.get_version() == SNMP_VERSION_1) {
+                process_trap_v1(request, response);
+            } else {
+                Logger::get_instance().log(LogLevel::WARNING, "SNMP v1 trap received with wrong version");
+                response.set_error_status(SNMP_ERROR_NO_SUCH_NAME);
+            }
+            break;
+        case SNMP_PDU_TRAP_V2:
+            // Handle SNMP v2c traps
+            if (request.get_version() == SNMP_VERSION_2C) {
+                process_trap_v2(request, response);
+            } else {
+                Logger::get_instance().log(LogLevel::WARNING, "SNMP v2c trap received with wrong version");
+                response.set_error_status(SNMP_ERROR_NO_SUCH_NAME);
+            }
             break;
         default:
             Logger::get_instance().log(LogLevel::WARNING, "Unsupported PDU type: " +
@@ -356,9 +400,28 @@ void SNMPServer::process_get_bulk_request(const SNMPPacket& request, SNMPPacket&
 void SNMPServer::process_set_request(const SNMPPacket& request, SNMPPacket& response) {
     response.set_pdu_type(SNMP_PDU_GET_RESPONSE);
 
+    // Check if write access is allowed for this community
+    if (!SecurityManager::get_instance().is_write_allowed(request.get_community())) {
+        Logger::get_instance().log(LogLevel::WARNING, "Write access denied for community: " + 
+                                  request.get_community());
+        response.set_error_status(SNMP_ERROR_NO_ACCESS);
+        return;
+    }
+
     for (const auto& varbind : request.get_variable_bindings()) {
         SNMPPacket::VariableBinding response_varbind;
         response_varbind.oid = varbind.oid;
+
+        // Check OID access
+        std::string oid_str = OIDUtils::oid_to_string(varbind.oid);
+        if (!SecurityManager::get_instance().is_oid_allowed(request.get_community(), oid_str)) {
+            response_varbind.value_type = 0x05; // NULL
+            response_varbind.value.clear();
+            response.set_error_status(SNMP_ERROR_NO_ACCESS);
+            response.set_error_index(static_cast<uint8_t>(request.get_variable_bindings().size()));
+            response.add_variable_binding(response_varbind);
+            continue;
+        }
 
         // Check if the object exists and is writable
         MIBValue mib_value;
@@ -395,6 +458,42 @@ void SNMPServer::process_set_request(const SNMPPacket& request, SNMPPacket& resp
 
         response.add_variable_binding(response_varbind);
     }
+}
+
+void SNMPServer::process_trap_v1(const SNMPPacket& request, SNMPPacket& response) {
+    // SNMP v1 traps don't generate responses, but we log them
+    Logger::get_instance().log(LogLevel::INFO, "Received SNMP v1 trap from " + 
+                              request.get_community() + " with " + 
+                              std::to_string(request.get_variable_bindings().size()) + " variables");
+    
+    // Log trap details
+    for (const auto& varbind : request.get_variable_bindings()) {
+        std::string oid_str = OIDUtils::oid_to_string(varbind.oid);
+        Logger::get_instance().log(LogLevel::DEBUG, "Trap variable: " + oid_str + 
+                                  " (type: " + std::to_string(varbind.value_type) + 
+                                  ", length: " + std::to_string(varbind.value.size()) + ")");
+    }
+    
+    // SNMP v1 traps don't send responses
+    return;
+}
+
+void SNMPServer::process_trap_v2(const SNMPPacket& request, SNMPPacket& response) {
+    // SNMP v2c traps don't generate responses, but we log them
+    Logger::get_instance().log(LogLevel::INFO, "Received SNMP v2c trap from " + 
+                              request.get_community() + " with " + 
+                              std::to_string(request.get_variable_bindings().size()) + " variables");
+    
+    // Log trap details
+    for (const auto& varbind : request.get_variable_bindings()) {
+        std::string oid_str = OIDUtils::oid_to_string(varbind.oid);
+        Logger::get_instance().log(LogLevel::DEBUG, "Trap variable: " + oid_str + 
+                                  " (type: " + std::to_string(varbind.value_type) + 
+                                  ", length: " + std::to_string(varbind.value.size()) + ")");
+    }
+    
+    // SNMP v2c traps don't send responses
+    return;
 }
 
 void SNMPServer::send_response(const SNMPPacket& response, const struct sockaddr_in& client_addr) {
