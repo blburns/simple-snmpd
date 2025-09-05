@@ -3,11 +3,16 @@ build/
 CMakeCache.txt
 CMakeFiles/
 cmake_install.cmake
-# Makefile (keep our custom Makefile, ignore CMake-generated ones)
+Makefile.cmake
 CMakeFiles/Makefile
 *.cmake
+!CMakeLists.txt
 *.config
 *.version
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake
+_deps/
 
 # Compiled Object files
 *.slo
@@ -34,13 +39,15 @@ CMakeFiles/Makefile
 *.exe
 *.out
 *.app
-simple-tftpd
+simple-snmpd
+simple-snmpd.exe
 
 # Debug files
 *.dSYM/
 *.su
 *.idb
 *.pdb
+*.ilk
 
 # IDE files
 .vscode/
@@ -48,6 +55,10 @@ simple-tftpd
 *.swp
 *.swo
 *~
+*.sublime-*
+.vs/
+*.vcxproj.user
+*.vcxproj.filters
 
 # OS generated files
 .DS_Store
@@ -57,41 +68,99 @@ simple-tftpd
 .Trashes
 ehthumbs.db
 Thumbs.db
+desktop.ini
 
 # Log files
 *.log
 logs/
+log/
 
 # Temporary files
 *.tmp
 *.temp
 *.bak
 *.backup
+*.orig
+*.rej
 
 # Package files
 *.tar.gz
 *.zip
 *.deb
 *.rpm
+*.dmg
+*.pkg
+*.msi
 
 # Test coverage
 *.gcov
 *.gcda
 *.gcno
 coverage/
+lcov.info
 
 # Valgrind output
 valgrind-out.txt
+*.valgrind
 
-# Configuration files (keep examples)
+# Configuration files (keep examples and templates)
 config/*.conf
 !config/*.example
+!config/*.template
+!config/*.sample
 
 # Documentation build
 docs/_build/
 docs/html/
 docs/latex/
+docs/pdf/
 
 # Dependencies
 vcpkg_installed/
 conan/
+vcpkg/
+packages/
+
+# SNMP specific
+*.mib
+*.smi
+mibs/
+traps/
+
+# Docker
+.dockerignore
+
+# Clang/LLVM
+.clangd/
+.clang-format
+
+# Profiling
+*.prof
+gmon.out
+callgrind.out.*
+
+# Core dumps
+core
+core.*
+*.core
+
+# Backup files
+*~
+.#*
+#*#
+
+# Windows specific
+*.user
+*.aps
+*.ncb
+*.opendb
+*.opensdf
+*.sdf
+*.cachefile
+*.VC.db
+*.VC.VC.opendb
+
+# macOS specific
+*.dmg
+*.pkg
+*.app
