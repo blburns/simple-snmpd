@@ -91,6 +91,8 @@ set(SOURCES
     src/core/snmp_v3_packet.cpp
     src/core/thread_pool.cpp
     src/core/memory_pool.cpp
+    src/core/prometheus_metrics.cpp
+    src/core/health_check.cpp
     src/core/logger.cpp
     src/core/error_handler.cpp
 )
@@ -108,6 +110,8 @@ set(CORE_SOURCES
     src/core/snmp_v3_packet.cpp
     src/core/thread_pool.cpp
     src/core/memory_pool.cpp
+    src/core/prometheus_metrics.cpp
+    src/core/health_check.cpp
     src/core/logger.cpp
     src/core/platform.cpp
     src/core/error_handler.cpp
@@ -126,6 +130,8 @@ set(HEADERS
     include/simple_snmpd/snmp_v3_packet.hpp
     include/simple_snmpd/thread_pool.hpp
     include/simple_snmpd/memory_pool.hpp
+    include/simple_snmpd/prometheus_metrics.hpp
+    include/simple_snmpd/health_check.hpp
     include/simple_snmpd/logger.hpp
     include/simple_snmpd/platform.hpp
     include/simple_snmpd/error_handler.hpp
