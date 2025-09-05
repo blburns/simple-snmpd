@@ -158,8 +158,26 @@ install(DIRECTORY docs/ DESTINATION share/doc/simple-snmpd)
 # Tests
 if(BUILD_TESTS)
     enable_testing()
-    # TODO: Add tests when implemented
-    # add_subdirectory(src/tests)
+    
+    # Test executables
+    add_executable(test_snmp_packet src/tests/test_snmp_packet.cpp)
+    target_link_libraries(test_snmp_packet simple-snmpd-core)
+    
+    add_executable(test_snmp_mib src/tests/test_snmp_mib.cpp)
+    target_link_libraries(test_snmp_mib simple-snmpd-core)
+    
+    add_executable(test_snmp_security src/tests/test_snmp_security.cpp)
+    target_link_libraries(test_snmp_security simple-snmpd-core)
+    
+    # Add tests to CTest
+    add_test(NAME snmp_packet_tests COMMAND test_snmp_packet)
+    add_test(NAME snmp_mib_tests COMMAND test_snmp_mib)
+    add_test(NAME snmp_security_tests COMMAND test_snmp_security)
+    
+    # Set test properties
+    set_tests_properties(snmp_packet_tests PROPERTIES TIMEOUT 30)
+    set_tests_properties(snmp_mib_tests PROPERTIES TIMEOUT 30)
+    set_tests_properties(snmp_security_tests PROPERTIES TIMEOUT 30)
 endif()
 
 # Examples
