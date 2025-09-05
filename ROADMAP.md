@@ -56,30 +56,30 @@ Simple SNMP Daemon aims to provide a modern, lightweight, and secure SNMP implem
 - [ ] Rate limiting and DoS protection
 
 ### Phase 3: Advanced Features (v0.3.0)
-**Status**: Planned
+**Status**: Completed
 **Target**: Q2 2025
 
 #### SNMP v3 Support
-- [ ] User-based Security Model (USM)
-- [ ] Authentication (MD5, SHA-1, SHA-256)
-- [ ] Privacy (DES, AES-128, AES-192, AES-256)
-- [ ] View-based Access Control Model (VACM)
-- [ ] SNMP v3 user management
+- [x] User-based Security Model (USM)
+- [x] Authentication (MD5, SHA-1, SHA-256)
+- [x] Privacy (DES, AES-128, AES-192, AES-256)
+- [x] View-based Access Control Model (VACM)
+- [x] SNMP v3 user management
 
 #### Performance Optimizations
-- [ ] Multi-threaded request processing
+- [x] Multi-threaded request processing
+- [x] Memory pool management
 - [ ] Connection pooling
-- [ ] Memory pool management
 - [ ] CPU affinity support
 - [ ] NUMA awareness
 - [ ] High-performance networking (DPDK support)
 
 #### Monitoring and Observability
-- [ ] Prometheus metrics export
-- [ ] Health check endpoints
-- [ ] Performance monitoring
-- [ ] Request/response metrics
-- [ ] Resource usage tracking
+- [x] Prometheus metrics export
+- [x] Health check endpoints
+- [x] Performance monitoring
+- [x] Request/response metrics
+- [x] Resource usage tracking
 
 ### Phase 4: Enterprise Features (v0.4.0)
 **Status**: Planned
