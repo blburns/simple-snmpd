@@ -19,8 +19,8 @@
 #ifndef SIMPLE_SNMPD_ERROR_HANDLER_HPP
 #define SIMPLE_SNMPD_ERROR_HANDLER_HPP
 
-#include <string>
 #include <cstdint>
+#include <string>
 
 namespace simple_snmpd {
 
@@ -29,34 +29,42 @@ enum class LogLevel;
 
 class ErrorHandler {
 public:
-    ErrorHandler();
-    ~ErrorHandler();
+  ErrorHandler();
+  ~ErrorHandler();
 
-    // Error handling methods
-    void handle_error(const std::string& message, const std::string& file, int line);
-    void handle_warning(const std::string& message, const std::string& file, int line);
-    void handle_info(const std::string& message, const std::string& file, int line);
-    void handle_debug(const std::string& message, const std::string& file, int line);
+  // Error handling methods
+  void handle_error(const std::string &message, const std::string &file,
+                    int line);
+  void handle_warning(const std::string &message, const std::string &file,
+                      int line);
+  void handle_info(const std::string &message, const std::string &file,
+                   int line);
+  void handle_debug(const std::string &message, const std::string &file,
+                    int line);
 
-    // Counter management
-    void reset_counters();
-    uint32_t get_error_count() const;
-    uint32_t get_warning_count() const;
-    std::string get_summary() const;
+  // Counter management
+  void reset_counters();
+  uint32_t get_error_count() const;
+  uint32_t get_warning_count() const;
+  std::string get_summary() const;
 
-    // Singleton access
-    static ErrorHandler& get_instance();
+  // Singleton access
+  static ErrorHandler &get_instance();
 
 private:
-    uint32_t error_count_;
-    uint32_t warning_count_;
+  uint32_t error_count_;
+  uint32_t warning_count_;
 };
 
 // Convenience macros
-#define HANDLE_ERROR(msg) ErrorHandler::get_instance().handle_error(msg, __FILE__, __LINE__)
-#define HANDLE_WARNING(msg) ErrorHandler::get_instance().handle_warning(msg, __FILE__, __LINE__)
-#define HANDLE_INFO(msg) ErrorHandler::get_instance().handle_info(msg, __FILE__, __LINE__)
-#define HANDLE_DEBUG(msg) ErrorHandler::get_instance().handle_debug(msg, __FILE__, __LINE__)
+#define HANDLE_ERROR(msg)                                                      \
+  ErrorHandler::get_instance().handle_error(msg, __FILE__, __LINE__)
+#define HANDLE_WARNING(msg)                                                    \
+  ErrorHandler::get_instance().handle_warning(msg, __FILE__, __LINE__)
+#define HANDLE_INFO(msg)                                                       \
+  ErrorHandler::get_instance().handle_info(msg, __FILE__, __LINE__)
+#define HANDLE_DEBUG(msg)                                                      \
+  ErrorHandler::get_instance().handle_debug(msg, __FILE__, __LINE__)
 
 } // namespace simple_snmpd
 

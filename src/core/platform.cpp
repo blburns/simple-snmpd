@@ -21,245 +21,249 @@
 #include <vector>
 
 #ifdef _WIN32
-#include <windows.h>
 #include <iphlpapi.h>
+#include <windows.h>
 #pragma comment(lib, "iphlpapi.lib")
 #elif __APPLE__
-#include <unistd.h>
-#include <sys/utsname.h>
+#include <arpa/inet.h>
+#include <ifaddrs.h>
+#include <mach/mach.h>
+#include <netinet/in.h>
 #include <sys/sysctl.h>
 #include <sys/time.h>
-#include <ifaddrs.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <mach/mach.h>
-#else
-#include <unistd.h>
 #include <sys/utsname.h>
-#include <sys/sysinfo.h>
+#include <unistd.h>
+#else
+#include <arpa/inet.h>
 #include <ifaddrs.h>
 #include <netinet/in.h>
-#include <arpa/inet.h>
+#include <sys/sysinfo.h>
+#include <sys/utsname.h>
+#include <unistd.h>
 #endif
 
 namespace simple_snmpd {
 
-Platform::Platform() {
-}
+Platform::Platform() {}
 
-Platform::~Platform() {
-}
+Platform::~Platform() {}
 
 std::string Platform::get_os_name() const {
 #ifdef _WIN32
-    return "Windows";
+  return "Windows";
 #elif __APPLE__
-    return "macOS";
+  return "macOS";
 #elif __linux__
-    return "Linux";
+  return "Linux";
 #elif __FreeBSD__
-    return "FreeBSD";
+  return "FreeBSD";
 #elif __OpenBSD__
-    return "OpenBSD";
+  return "OpenBSD";
 #elif __NetBSD__
-    return "NetBSD";
+  return "NetBSD";
 #else
-    return "Unknown";
+  return "Unknown";
 #endif
 }
 
 std::string Platform::get_os_version() const {
 #ifdef _WIN32
-    OSVERSIONINFOEX osvi;
-    ZeroMemory(&osvi, sizeof(OSVERSIONINFOEX));
-    osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
+  OSVERSIONINFOEX osvi;
+  ZeroMemory(&osvi, sizeof(OSVERSIONINFOEX));
+  osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
 
-    if (GetVersionEx((OSVERSIONINFO*)&osvi)) {
-        return std::to_string(osvi.dwMajorVersion) + "." +
-               std::to_string(osvi.dwMinorVersion) + "." +
-               std::to_string(osvi.dwBuildNumber);
-    }
-    return "Unknown";
+  if (GetVersionEx((OSVERSIONINFO *)&osvi)) {
+    return std::to_string(osvi.dwMajorVersion) + "." +
+           std::to_string(osvi.dwMinorVersion) + "." +
+           std::to_string(osvi.dwBuildNumber);
+  }
+  return "Unknown";
 #else
-    struct utsname uts;
-    if (uname(&uts) == 0) {
-        return std::string(uts.release);
-    }
-    return "Unknown";
+  struct utsname uts;
+  if (uname(&uts) == 0) {
+    return std::string(uts.release);
+  }
+  return "Unknown";
 #endif
 }
 
 std::string Platform::get_architecture() const {
 #ifdef _WIN32
-    SYSTEM_INFO si;
-    GetSystemInfo(&si);
+  SYSTEM_INFO si;
+  GetSystemInfo(&si);
 
-    switch (si.wProcessorArchitecture) {
-        case PROCESSOR_ARCHITECTURE_AMD64:
-            return "x86_64";
-        case PROCESSOR_ARCHITECTURE_ARM:
-            return "ARM";
-        case PROCESSOR_ARCHITECTURE_ARM64:
-            return "ARM64";
-        case PROCESSOR_ARCHITECTURE_IA64:
-            return "IA64";
-        case PROCESSOR_ARCHITECTURE_INTEL:
-            return "x86";
-        default:
-            return "Unknown";
-    }
-#else
-    struct utsname uts;
-    if (uname(&uts) == 0) {
-        return std::string(uts.machine);
-    }
+  switch (si.wProcessorArchitecture) {
+  case PROCESSOR_ARCHITECTURE_AMD64:
+    return "x86_64";
+  case PROCESSOR_ARCHITECTURE_ARM:
+    return "ARM";
+  case PROCESSOR_ARCHITECTURE_ARM64:
+    return "ARM64";
+  case PROCESSOR_ARCHITECTURE_IA64:
+    return "IA64";
+  case PROCESSOR_ARCHITECTURE_INTEL:
+    return "x86";
+  default:
     return "Unknown";
+  }
+#else
+  struct utsname uts;
+  if (uname(&uts) == 0) {
+    return std::string(uts.machine);
+  }
+  return "Unknown";
 #endif
 }
 
 std::string Platform::get_hostname() const {
 #ifdef _WIN32
-    char hostname[256];
-    DWORD size = sizeof(hostname);
-    if (GetComputerNameA(hostname, &size)) {
-        return std::string(hostname);
-    }
-    return "Unknown";
+  char hostname[256];
+  DWORD size = sizeof(hostname);
+  if (GetComputerNameA(hostname, &size)) {
+    return std::string(hostname);
+  }
+  return "Unknown";
 #else
-    char hostname[256];
-    if (gethostname(hostname, sizeof(hostname)) == 0) {
-        return std::string(hostname);
-    }
-    return "Unknown";
+  char hostname[256];
+  if (gethostname(hostname, sizeof(hostname)) == 0) {
+    return std::string(hostname);
+  }
+  return "Unknown";
 #endif
 }
 
 std::vector<std::string> Platform::get_network_interfaces() const {
-    std::vector<std::string> interfaces;
+  std::vector<std::string> interfaces;
 
 #ifdef _WIN32
-    // Windows implementation
-    ULONG buffer_size = 0;
-    GetAdaptersAddresses(AF_UNSPEC, 0, nullptr, nullptr, &buffer_size);
+  // Windows implementation
+  ULONG buffer_size = 0;
+  GetAdaptersAddresses(AF_UNSPEC, 0, nullptr, nullptr, &buffer_size);
 
-    if (buffer_size > 0) {
-        std::vector<BYTE> buffer(buffer_size);
-        PIP_ADAPTER_ADDRESSES adapters = reinterpret_cast<PIP_ADAPTER_ADDRESSES>(buffer.data());
+  if (buffer_size > 0) {
+    std::vector<BYTE> buffer(buffer_size);
+    PIP_ADAPTER_ADDRESSES adapters =
+        reinterpret_cast<PIP_ADAPTER_ADDRESSES>(buffer.data());
 
-        if (GetAdaptersAddresses(AF_UNSPEC, 0, nullptr, adapters, &buffer_size) == ERROR_SUCCESS) {
-            for (PIP_ADAPTER_ADDRESSES adapter = adapters; adapter != nullptr; adapter = adapter->Next) {
-                if (adapter->OperStatus == IfOperStatusUp) {
-                    interfaces.push_back(std::string(adapter->FriendlyName));
-                }
-            }
+    if (GetAdaptersAddresses(AF_UNSPEC, 0, nullptr, adapters, &buffer_size) ==
+        ERROR_SUCCESS) {
+      for (PIP_ADAPTER_ADDRESSES adapter = adapters; adapter != nullptr;
+           adapter = adapter->Next) {
+        if (adapter->OperStatus == IfOperStatusUp) {
+          interfaces.push_back(std::string(adapter->FriendlyName));
         }
+      }
     }
+  }
 #else
-    // Unix implementation
-    struct ifaddrs* ifaddr;
-    if (getifaddrs(&ifaddr) == 0) {
-        for (struct ifaddrs* ifa = ifaddr; ifa != nullptr; ifa = ifa->ifa_next) {
-            if (ifa->ifa_addr != nullptr && ifa->ifa_addr->sa_family == AF_INET) {
-                interfaces.push_back(std::string(ifa->ifa_name));
-            }
-        }
-        freeifaddrs(ifaddr);
+  // Unix implementation
+  struct ifaddrs *ifaddr;
+  if (getifaddrs(&ifaddr) == 0) {
+    for (struct ifaddrs *ifa = ifaddr; ifa != nullptr; ifa = ifa->ifa_next) {
+      if (ifa->ifa_addr != nullptr && ifa->ifa_addr->sa_family == AF_INET) {
+        interfaces.push_back(std::string(ifa->ifa_name));
+      }
     }
+    freeifaddrs(ifaddr);
+  }
 #endif
 
-    return interfaces;
+  return interfaces;
 }
 
 uint64_t Platform::get_uptime_seconds() const {
 #ifdef _WIN32
-    return GetTickCount64() / 1000;
+  return GetTickCount64() / 1000;
 #elif __APPLE__
-    struct timeval boottime;
-    size_t size = sizeof(boottime);
-    int mib[2] = {CTL_KERN, KERN_BOOTTIME};
-    if (sysctl(mib, 2, &boottime, &size, nullptr, 0) == 0) {
-        struct timeval now;
-        gettimeofday(&now, nullptr);
-        return now.tv_sec - boottime.tv_sec;
-    }
-    return 0;
+  struct timeval boottime;
+  size_t size = sizeof(boottime);
+  int mib[2] = {CTL_KERN, KERN_BOOTTIME};
+  if (sysctl(mib, 2, &boottime, &size, nullptr, 0) == 0) {
+    struct timeval now;
+    gettimeofday(&now, nullptr);
+    return now.tv_sec - boottime.tv_sec;
+  }
+  return 0;
 #else
-    struct sysinfo info;
-    if (sysinfo(&info) == 0) {
-        return info.uptime;
-    }
-    return 0;
+  struct sysinfo info;
+  if (sysinfo(&info) == 0) {
+    return info.uptime;
+  }
+  return 0;
 #endif
 }
 
 uint32_t Platform::get_cpu_count() const {
 #ifdef _WIN32
-    SYSTEM_INFO si;
-    GetSystemInfo(&si);
-    return si.dwNumberOfProcessors;
+  SYSTEM_INFO si;
+  GetSystemInfo(&si);
+  return si.dwNumberOfProcessors;
 #else
-    return sysconf(_SC_NPROCESSORS_ONLN);
+  return sysconf(_SC_NPROCESSORS_ONLN);
 #endif
 }
 
 uint64_t Platform::get_total_memory() const {
 #ifdef _WIN32
-    MEMORYSTATUSEX mem_status;
-    mem_status.dwLength = sizeof(mem_status);
-    if (GlobalMemoryStatusEx(&mem_status)) {
-        return mem_status.ullTotalPhys;
-    }
-    return 0;
+  MEMORYSTATUSEX mem_status;
+  mem_status.dwLength = sizeof(mem_status);
+  if (GlobalMemoryStatusEx(&mem_status)) {
+    return mem_status.ullTotalPhys;
+  }
+  return 0;
 #elif __APPLE__
-    int64_t mem_size;
-    size_t size = sizeof(mem_size);
-    if (sysctl((int[]){CTL_HW, HW_MEMSIZE}, 2, &mem_size, &size, nullptr, 0) == 0) {
-        return static_cast<uint64_t>(mem_size);
-    }
-    return 0;
+  int64_t mem_size;
+  size_t size = sizeof(mem_size);
+  if (sysctl((int[]){CTL_HW, HW_MEMSIZE}, 2, &mem_size, &size, nullptr, 0) ==
+      0) {
+    return static_cast<uint64_t>(mem_size);
+  }
+  return 0;
 #else
-    long pages = sysconf(_SC_PHYS_PAGES);
-    long page_size = sysconf(_SC_PAGE_SIZE);
-    if (pages > 0 && page_size > 0) {
-        return static_cast<uint64_t>(pages) * static_cast<uint64_t>(page_size);
-    }
-    return 0;
+  long pages = sysconf(_SC_PHYS_PAGES);
+  long page_size = sysconf(_SC_PAGE_SIZE);
+  if (pages > 0 && page_size > 0) {
+    return static_cast<uint64_t>(pages) * static_cast<uint64_t>(page_size);
+  }
+  return 0;
 #endif
 }
 
 uint64_t Platform::get_free_memory() const {
 #ifdef _WIN32
-    MEMORYSTATUSEX mem_status;
-    mem_status.dwLength = sizeof(mem_status);
-    if (GlobalMemoryStatusEx(&mem_status)) {
-        return mem_status.ullAvailPhys;
-    }
-    return 0;
+  MEMORYSTATUSEX mem_status;
+  mem_status.dwLength = sizeof(mem_status);
+  if (GlobalMemoryStatusEx(&mem_status)) {
+    return mem_status.ullAvailPhys;
+  }
+  return 0;
 #elif __APPLE__
-    vm_statistics64_data_t vm_stats;
-    mach_msg_type_number_t info_count = HOST_VM_INFO64_COUNT;
-    if (host_statistics64(mach_host_self(), HOST_VM_INFO64,
-                         reinterpret_cast<host_info64_t>(&vm_stats), &info_count) == KERN_SUCCESS) {
-        vm_size_t page_size;
-        if (host_page_size(mach_host_self(), &page_size) == KERN_SUCCESS) {
-            return static_cast<uint64_t>(vm_stats.free_count) * static_cast<uint64_t>(page_size);
-        }
+  vm_statistics64_data_t vm_stats;
+  mach_msg_type_number_t info_count = HOST_VM_INFO64_COUNT;
+  if (host_statistics64(mach_host_self(), HOST_VM_INFO64,
+                        reinterpret_cast<host_info64_t>(&vm_stats),
+                        &info_count) == KERN_SUCCESS) {
+    vm_size_t page_size;
+    if (host_page_size(mach_host_self(), &page_size) == KERN_SUCCESS) {
+      return static_cast<uint64_t>(vm_stats.free_count) *
+             static_cast<uint64_t>(page_size);
     }
-    return 0;
+  }
+  return 0;
 #else
-    long pages = sysconf(_SC_AVPHYS_PAGES);
-    long page_size = sysconf(_SC_PAGE_SIZE);
-    if (pages > 0 && page_size > 0) {
-        return static_cast<uint64_t>(pages) * static_cast<uint64_t>(page_size);
-    }
-    return 0;
+  long pages = sysconf(_SC_AVPHYS_PAGES);
+  long page_size = sysconf(_SC_PAGE_SIZE);
+  if (pages > 0 && page_size > 0) {
+    return static_cast<uint64_t>(pages) * static_cast<uint64_t>(page_size);
+  }
+  return 0;
 #endif
 }
 
 // Global platform instance
-Platform& Platform::get_instance() {
-    static Platform instance;
-    return instance;
+Platform &Platform::get_instance() {
+  static Platform instance;
+  return instance;
 }
 
 } // namespace simple_snmpd

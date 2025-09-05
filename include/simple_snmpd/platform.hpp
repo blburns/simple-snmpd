@@ -19,43 +19,43 @@
 #ifndef SIMPLE_SNMPD_PLATFORM_HPP
 #define SIMPLE_SNMPD_PLATFORM_HPP
 
+#include <cstdint>
 #include <string>
 #include <vector>
-#include <cstdint>
 
 namespace simple_snmpd {
 
 class Platform {
 public:
-    Platform();
-    ~Platform();
+  Platform();
+  ~Platform();
 
-    // System information
-    std::string get_os_name() const;
-    std::string get_os_version() const;
-    std::string get_architecture() const;
-    std::string get_hostname() const;
+  // System information
+  std::string get_os_name() const;
+  std::string get_os_version() const;
+  std::string get_architecture() const;
+  std::string get_hostname() const;
 
-    // Network information
-    std::vector<std::string> get_network_interfaces() const;
+  // Network information
+  std::vector<std::string> get_network_interfaces() const;
 
-    // System resources
-    uint64_t get_uptime_seconds() const;
-    uint32_t get_cpu_count() const;
-    uint64_t get_total_memory() const;
-    uint64_t get_free_memory() const;
+  // System resources
+  uint64_t get_uptime_seconds() const;
+  uint32_t get_cpu_count() const;
+  uint64_t get_total_memory() const;
+  uint64_t get_free_memory() const;
 
-    // Singleton access
-    static Platform& get_instance();
+  // Singleton access
+  static Platform &get_instance();
 
 private:
-    // Platform-specific implementations
+  // Platform-specific implementations
 #ifdef _WIN32
-    std::string get_windows_version() const;
-    std::string get_windows_architecture() const;
+  std::string get_windows_version() const;
+  std::string get_windows_architecture() const;
 #else
-    std::string get_unix_version() const;
-    std::string get_unix_architecture() const;
+  std::string get_unix_version() const;
+  std::string get_unix_architecture() const;
 #endif
 };
 

@@ -19,44 +19,38 @@
 #ifndef SIMPLE_SNMPD_LOGGER_HPP
 #define SIMPLE_SNMPD_LOGGER_HPP
 
-#include <string>
 #include <fstream>
 #include <mutex>
+#include <string>
 
 namespace simple_snmpd {
 
-enum class LogLevel {
-    DEBUG = 0,
-    INFO = 1,
-    WARNING = 2,
-    ERROR = 3,
-    FATAL = 4
-};
+enum class LogLevel { DEBUG = 0, INFO = 1, WARNING = 2, ERROR = 3, FATAL = 4 };
 
 class Logger {
 public:
-    Logger();
-    ~Logger();
+  Logger();
+  ~Logger();
 
-    // Initialization
-    void initialize(LogLevel level, const std::string& log_file_path = "");
+  // Initialization
+  void initialize(LogLevel level, const std::string &log_file_path = "");
 
-    // Logging methods
-    void log(LogLevel level, const std::string& message);
+  // Logging methods
+  void log(LogLevel level, const std::string &message);
 
-    // Configuration
-    void set_level(LogLevel level);
-    LogLevel get_level() const;
-    bool is_initialized() const;
+  // Configuration
+  void set_level(LogLevel level);
+  LogLevel get_level() const;
+  bool is_initialized() const;
 
-    // Singleton access
-    static Logger& get_instance();
+  // Singleton access
+  static Logger &get_instance();
 
 private:
-    LogLevel level_;
-    bool initialized_;
-    std::ofstream log_file_;
-    mutable std::mutex mutex_;
+  LogLevel level_;
+  bool initialized_;
+  std::ofstream log_file_;
+  mutable std::mutex mutex_;
 };
 
 // Convenience macros

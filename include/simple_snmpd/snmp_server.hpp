@@ -23,9 +23,9 @@
 #include "snmp_connection.hpp"
 #include "snmp_packet.hpp"
 #include <memory>
+#include <mutex>
 #include <thread>
 #include <vector>
-#include <mutex>
 
 // Forward declarations for socket structures
 struct sockaddr_in;
@@ -34,52 +34,55 @@ namespace simple_snmpd {
 
 class SNMPServer {
 public:
-    SNMPServer(const SNMPConfig& config);
-    ~SNMPServer();
+  SNMPServer(const SNMPConfig &config);
+  ~SNMPServer();
 
-    // Server lifecycle
-    bool initialize();
-    bool start();
-    void stop();
-    bool is_running() const;
+  // Server lifecycle
+  bool initialize();
+  bool start();
+  void stop();
+  bool is_running() const;
 
-    // Configuration
-    const SNMPConfig& get_config() const;
+  // Configuration
+  const SNMPConfig &get_config() const;
 
 private:
-    // Server threads
-    void server_loop();
-    void worker_thread();
+  // Server threads
+  void server_loop();
+  void worker_thread();
 
-    // Request processing
-    void process_snmp_request(std::shared_ptr<SNMPConnection> connection,
-                             const SNMPPacket& request,
-                             const struct sockaddr_in& client_addr);
+  // Request processing
+  void process_snmp_request(std::shared_ptr<SNMPConnection> connection,
+                            const SNMPPacket &request,
+                            const struct sockaddr_in &client_addr);
 
-    // PDU processing
-    void process_get_request(const SNMPPacket& request, SNMPPacket& response);
-    void process_get_next_request(const SNMPPacket& request, SNMPPacket& response);
-    void process_get_bulk_request(const SNMPPacket& request, SNMPPacket& response);
-    void process_set_request(const SNMPPacket& request, SNMPPacket& response);
-    void process_trap_v1(const SNMPPacket& request, SNMPPacket& response);
-    void process_trap_v2(const SNMPPacket& request, SNMPPacket& response);
+  // PDU processing
+  void process_get_request(const SNMPPacket &request, SNMPPacket &response);
+  void process_get_next_request(const SNMPPacket &request,
+                                SNMPPacket &response);
+  void process_get_bulk_request(const SNMPPacket &request,
+                                SNMPPacket &response);
+  void process_set_request(const SNMPPacket &request, SNMPPacket &response);
+  void process_trap_v1(const SNMPPacket &request, SNMPPacket &response);
+  void process_trap_v2(const SNMPPacket &request, SNMPPacket &response);
 
-    // Response handling
-    void send_response(const SNMPPacket& response, const struct sockaddr_in& client_addr);
+  // Response handling
+  void send_response(const SNMPPacket &response,
+                     const struct sockaddr_in &client_addr);
 
-    // Server configuration
-    SNMPConfig config_;
-    int server_socket_;
-    bool running_;
+  // Server configuration
+  SNMPConfig config_;
+  int server_socket_;
+  bool running_;
 
-    // Threading
-    std::thread server_thread_;
-    std::vector<std::thread> worker_threads_;
-    size_t thread_pool_size_;
+  // Threading
+  std::thread server_thread_;
+  std::vector<std::thread> worker_threads_;
+  size_t thread_pool_size_;
 
-    // Connection management
-    std::vector<std::shared_ptr<SNMPConnection>> connections_;
-    mutable std::mutex connections_mutex_;
+  // Connection management
+  std::vector<std::shared_ptr<SNMPConnection>> connections_;
+  mutable std::mutex connections_mutex_;
 };
 
 } // namespace simple_snmpd

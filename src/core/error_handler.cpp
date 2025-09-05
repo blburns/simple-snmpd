@@ -18,97 +18,97 @@
 
 #include "simple_snmpd/error_handler.hpp"
 #include "simple_snmpd/logger.hpp"
+#include <iomanip>
 #include <iostream>
 #include <sstream>
-#include <iomanip>
 
 namespace simple_snmpd {
 
-ErrorHandler::ErrorHandler() : error_count_(0), warning_count_(0) {
+ErrorHandler::ErrorHandler() : error_count_(0), warning_count_(0) {}
+
+ErrorHandler::~ErrorHandler() {}
+
+void ErrorHandler::handle_error(const std::string &message,
+                                const std::string &file, int line) {
+  error_count_++;
+
+  std::ostringstream oss;
+  oss << "ERROR [" << std::setfill('0') << std::setw(6) << error_count_ << "] ";
+  oss << "(" << file << ":" << line << ") " << message;
+
+  std::string error_msg = oss.str();
+
+  // Log the error
+  Logger::get_instance().log(LogLevel::ERROR, error_msg);
+
+  // Print to stderr if in debug mode
+  if (Logger::get_instance().get_level() <= LogLevel::DEBUG) {
+    std::cerr << error_msg << std::endl;
+  }
 }
 
-ErrorHandler::~ErrorHandler() {
+void ErrorHandler::handle_warning(const std::string &message,
+                                  const std::string &file, int line) {
+  warning_count_++;
+
+  std::ostringstream oss;
+  oss << "WARNING [" << std::setfill('0') << std::setw(6) << warning_count_
+      << "] ";
+  oss << "(" << file << ":" << line << ") " << message;
+
+  std::string warning_msg = oss.str();
+
+  // Log the warning
+  Logger::get_instance().log(LogLevel::WARNING, warning_msg);
+
+  // Print to stderr if in debug mode
+  if (Logger::get_instance().get_level() <= LogLevel::DEBUG) {
+    std::cerr << warning_msg << std::endl;
+  }
 }
 
-void ErrorHandler::handle_error(const std::string& message, const std::string& file, int line) {
-    error_count_++;
+void ErrorHandler::handle_info(const std::string &message,
+                               const std::string &file, int line) {
+  std::ostringstream oss;
+  oss << "INFO (" << file << ":" << line << ") " << message;
 
-    std::ostringstream oss;
-    oss << "ERROR [" << std::setfill('0') << std::setw(6) << error_count_ << "] ";
-    oss << "(" << file << ":" << line << ") " << message;
+  std::string info_msg = oss.str();
 
-    std::string error_msg = oss.str();
-
-    // Log the error
-    Logger::get_instance().log(LogLevel::ERROR, error_msg);
-
-    // Print to stderr if in debug mode
-    if (Logger::get_instance().get_level() <= LogLevel::DEBUG) {
-        std::cerr << error_msg << std::endl;
-    }
+  // Log the info
+  Logger::get_instance().log(LogLevel::INFO, info_msg);
 }
 
-void ErrorHandler::handle_warning(const std::string& message, const std::string& file, int line) {
-    warning_count_++;
+void ErrorHandler::handle_debug(const std::string &message,
+                                const std::string &file, int line) {
+  std::ostringstream oss;
+  oss << "DEBUG (" << file << ":" << line << ") " << message;
 
-    std::ostringstream oss;
-    oss << "WARNING [" << std::setfill('0') << std::setw(6) << warning_count_ << "] ";
-    oss << "(" << file << ":" << line << ") " << message;
+  std::string debug_msg = oss.str();
 
-    std::string warning_msg = oss.str();
-
-    // Log the warning
-    Logger::get_instance().log(LogLevel::WARNING, warning_msg);
-
-    // Print to stderr if in debug mode
-    if (Logger::get_instance().get_level() <= LogLevel::DEBUG) {
-        std::cerr << warning_msg << std::endl;
-    }
-}
-
-void ErrorHandler::handle_info(const std::string& message, const std::string& file, int line) {
-    std::ostringstream oss;
-    oss << "INFO (" << file << ":" << line << ") " << message;
-
-    std::string info_msg = oss.str();
-
-    // Log the info
-    Logger::get_instance().log(LogLevel::INFO, info_msg);
-}
-
-void ErrorHandler::handle_debug(const std::string& message, const std::string& file, int line) {
-    std::ostringstream oss;
-    oss << "DEBUG (" << file << ":" << line << ") " << message;
-
-    std::string debug_msg = oss.str();
-
-    // Log the debug message
-    Logger::get_instance().log(LogLevel::DEBUG, debug_msg);
+  // Log the debug message
+  Logger::get_instance().log(LogLevel::DEBUG, debug_msg);
 }
 
 void ErrorHandler::reset_counters() {
-    error_count_ = 0;
-    warning_count_ = 0;
+  error_count_ = 0;
+  warning_count_ = 0;
 }
 
-uint32_t ErrorHandler::get_error_count() const {
-    return error_count_;
-}
+uint32_t ErrorHandler::get_error_count() const { return error_count_; }
 
-uint32_t ErrorHandler::get_warning_count() const {
-    return warning_count_;
-}
+uint32_t ErrorHandler::get_warning_count() const { return warning_count_; }
 
 std::string ErrorHandler::get_summary() const {
-    std::ostringstream oss;
-    oss << "Error Summary: " << error_count_ << " errors, " << warning_count_ << " warnings";
-    return oss.str();
+  std::ostringstream oss;
+  oss << "Error Summary: " << error_count_ << " errors, " << warning_count_
+      << " warnings";
+  return oss.str();
 }
 
 // Global error handler instance
-ErrorHandler& ErrorHandler::get_instance() {
-    static ErrorHandler instance;
-    return instance;
+ErrorHandler &ErrorHandler::get_instance() {
+  static ErrorHandler instance;
+  return instance;
 }
 
 } // namespace simple_snmpd

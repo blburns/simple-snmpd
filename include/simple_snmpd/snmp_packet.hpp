@@ -19,9 +19,9 @@
 #ifndef SIMPLE_SNMPD_SNMP_PACKET_HPP
 #define SIMPLE_SNMPD_SNMP_PACKET_HPP
 
-#include <vector>
-#include <string>
 #include <cstdint>
+#include <string>
+#include <vector>
 
 namespace simple_snmpd {
 
@@ -64,57 +64,60 @@ constexpr uint8_t SNMP_ERROR_INCONSISTENT_NAME = 18;
 
 class SNMPPacket {
 public:
-    struct VariableBinding {
-        std::vector<uint8_t> oid;
-        uint8_t value_type;
-        std::vector<uint8_t> value;
-    };
+  struct VariableBinding {
+    std::vector<uint8_t> oid;
+    uint8_t value_type;
+    std::vector<uint8_t> value;
+  };
 
-    SNMPPacket();
-    ~SNMPPacket();
+  SNMPPacket();
+  ~SNMPPacket();
 
-    // Packet parsing and serialization
-    bool parse(const uint8_t* data, size_t length);
-    bool serialize(std::vector<uint8_t>& buffer) const;
+  // Packet parsing and serialization
+  bool parse(const uint8_t *data, size_t length);
+  bool serialize(std::vector<uint8_t> &buffer) const;
 
-    // Getters
-    uint8_t get_version() const;
-    uint8_t get_pdu_type() const;
-    const std::string& get_community() const;
-    uint32_t get_request_id() const;
-    uint8_t get_error_status() const;
-    uint8_t get_error_index() const;
-    const std::vector<VariableBinding>& get_variable_bindings() const;
+  // Getters
+  uint8_t get_version() const;
+  uint8_t get_pdu_type() const;
+  const std::string &get_community() const;
+  uint32_t get_request_id() const;
+  uint8_t get_error_status() const;
+  uint8_t get_error_index() const;
+  const std::vector<VariableBinding> &get_variable_bindings() const;
 
-    // Setters
-    void set_version(uint8_t version);
-    void set_pdu_type(uint8_t pdu_type);
-    void set_community(const std::string& community);
-    void set_request_id(uint32_t request_id);
-    void set_error_status(uint8_t error_status);
-    void set_error_index(uint8_t error_index);
-    void add_variable_binding(const VariableBinding& varbind);
-    void clear_variable_bindings();
+  // Setters
+  void set_version(uint8_t version);
+  void set_pdu_type(uint8_t pdu_type);
+  void set_community(const std::string &community);
+  void set_request_id(uint32_t request_id);
+  void set_error_status(uint8_t error_status);
+  void set_error_index(uint8_t error_index);
+  void add_variable_binding(const VariableBinding &varbind);
+  void clear_variable_bindings();
 
 private:
-    // ASN.1 parsing helpers
-    bool parse_length(const uint8_t* data, size_t length, size_t& offset, size_t& len);
-    bool parse_pdu_fields(const uint8_t* data, size_t& offset, size_t length);
-    bool parse_variable_bindings(const uint8_t* data, size_t& offset, size_t length);
-    bool parse_variable_binding(const uint8_t* data, size_t& offset, size_t length, VariableBinding& varbind);
+  // ASN.1 parsing helpers
+  bool parse_length(const uint8_t *data, size_t length, size_t &offset,
+                    size_t &len);
+  bool parse_pdu_fields(const uint8_t *data, size_t &offset, size_t length);
+  bool parse_variable_bindings(const uint8_t *data, size_t &offset,
+                               size_t length);
+  bool parse_variable_binding(const uint8_t *data, size_t &offset,
+                              size_t length, VariableBinding &varbind);
 
-    // ASN.1 serialization helpers
-    bool serialize_pdu_fields(std::vector<uint8_t>& buffer) const;
-    bool serialize_variable_bindings(std::vector<uint8_t>& buffer) const;
+  // ASN.1 serialization helpers
+  bool serialize_pdu_fields(std::vector<uint8_t> &buffer) const;
+  bool serialize_variable_bindings(std::vector<uint8_t> &buffer) const;
 
-    // Packet fields
-    uint8_t version_;
-    uint8_t pdu_type_;
-    std::string community_;
-    uint32_t request_id_;
-    uint8_t error_status_;
-    uint8_t error_index_;
-    std::vector<VariableBinding> variable_bindings_;
+  // Packet fields
+  uint8_t version_;
+  uint8_t pdu_type_;
+  std::string community_;
+  uint32_t request_id_;
+  uint8_t error_status_;
+  uint8_t error_index_;
+  std::vector<VariableBinding> variable_bindings_;
 };
 
 } // namespace simple_snmpd
