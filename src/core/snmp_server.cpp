@@ -20,6 +20,7 @@
 #include "simple_snmpd/logger.hpp"
 #include "simple_snmpd/error_handler.hpp"
 #include "simple_snmpd/platform.hpp"
+#include "simple_snmpd/snmp_mib.hpp"
 #include <thread>
 #include <chrono>
 #include <algorithm>
@@ -44,6 +45,8 @@ SNMPServer::SNMPServer(const SNMPConfig& config)
     , server_socket_(-1)
     , running_(false)
     , thread_pool_size_(4) {
+    // Initialize MIB manager
+    MIBManager::get_instance().initialize_standard_mibs();
 }
 
 SNMPServer::~SNMPServer() {
@@ -264,17 +267,17 @@ void SNMPServer::process_get_request(const SNMPPacket& request, SNMPPacket& resp
         SNMPPacket::VariableBinding response_varbind;
         response_varbind.oid = varbind.oid;
 
-        // TODO: Implement actual SNMP MIB lookup
-        // For now, return a simple response
-        if (varbind.oid == std::vector<uint8_t>{0x2b, 0x06, 0x01, 0x02, 0x01, 0x01, 0x01, 0x00}) {
-            // sysDescr.0
-            std::string sys_descr = "Simple SNMP Daemon v0.1.0";
-            response_varbind.value_type = 0x04; // OCTET STRING
-            response_varbind.value.assign(sys_descr.begin(), sys_descr.end());
+        // Look up value in MIB
+        MIBValue mib_value;
+        if (MIBManager::get_instance().get_value(varbind.oid, mib_value)) {
+            response_varbind.value_type = static_cast<uint8_t>(mib_value.type);
+            response_varbind.value = mib_value.data;
         } else {
             // No such object
             response_varbind.value_type = 0x05; // NULL
             response_varbind.value.clear();
+            response.set_error_status(SNMP_ERROR_NO_SUCH_NAME);
+            response.set_error_index(static_cast<uint8_t>(request.get_variable_bindings().size()));
         }
 
         response.add_variable_binding(response_varbind);
@@ -284,14 +287,31 @@ void SNMPServer::process_get_request(const SNMPPacket& request, SNMPPacket& resp
 void SNMPServer::process_get_next_request(const SNMPPacket& request, SNMPPacket& response) {
     response.set_pdu_type(SNMP_PDU_GET_RESPONSE);
 
-    // TODO: Implement GET-NEXT request processing
-    Logger::get_instance().log(LogLevel::DEBUG, "GET-NEXT request not implemented yet");
-
     for (const auto& varbind : request.get_variable_bindings()) {
         SNMPPacket::VariableBinding response_varbind;
-        response_varbind.oid = varbind.oid;
-        response_varbind.value_type = 0x05; // NULL
-        response_varbind.value.clear();
+        
+        // Find the next OID in lexicographic order
+        std::vector<uint8_t> next_oid;
+        if (MIBManager::get_instance().get_next_oid(varbind.oid, next_oid)) {
+            response_varbind.oid = next_oid;
+            
+            // Get the value for the next OID
+            MIBValue mib_value;
+            if (MIBManager::get_instance().get_value(next_oid, mib_value)) {
+                response_varbind.value_type = static_cast<uint8_t>(mib_value.type);
+                response_varbind.value = mib_value.data;
+            } else {
+                // This shouldn't happen if get_next_oid worked correctly
+                response_varbind.value_type = 0x05; // NULL
+                response_varbind.value.clear();
+            }
+        } else {
+            // No more objects - return endOfMibView
+            response_varbind.oid = varbind.oid;
+            response_varbind.value_type = 0x05; // NULL
+            response_varbind.value.clear();
+        }
+
         response.add_variable_binding(response_varbind);
     }
 }
@@ -299,14 +319,36 @@ void SNMPServer::process_get_next_request(const SNMPPacket& request, SNMPPacket&
 void SNMPServer::process_get_bulk_request(const SNMPPacket& request, SNMPPacket& response) {
     response.set_pdu_type(SNMP_PDU_GET_RESPONSE);
 
-    // TODO: Implement GET-BULK request processing
-    Logger::get_instance().log(LogLevel::DEBUG, "GET-BULK request not implemented yet");
-
-    for (const auto& varbind : request.get_variable_bindings()) {
+    // For simplicity, we'll process GET-BULK as multiple GET-NEXT operations
+    // In a full implementation, we'd need to handle non-repeaters and max-repetitions
+    const auto& varbinds = request.get_variable_bindings();
+    
+    for (size_t i = 0; i < varbinds.size(); ++i) {
+        const auto& varbind = varbinds[i];
         SNMPPacket::VariableBinding response_varbind;
-        response_varbind.oid = varbind.oid;
-        response_varbind.value_type = 0x05; // NULL
-        response_varbind.value.clear();
+        
+        // Find the next OID in lexicographic order
+        std::vector<uint8_t> next_oid;
+        if (MIBManager::get_instance().get_next_oid(varbind.oid, next_oid)) {
+            response_varbind.oid = next_oid;
+            
+            // Get the value for the next OID
+            MIBValue mib_value;
+            if (MIBManager::get_instance().get_value(next_oid, mib_value)) {
+                response_varbind.value_type = static_cast<uint8_t>(mib_value.type);
+                response_varbind.value = mib_value.data;
+            } else {
+                // This shouldn't happen if get_next_oid worked correctly
+                response_varbind.value_type = 0x05; // NULL
+                response_varbind.value.clear();
+            }
+        } else {
+            // No more objects - return endOfMibView
+            response_varbind.oid = varbind.oid;
+            response_varbind.value_type = 0x05; // NULL
+            response_varbind.value.clear();
+        }
+
         response.add_variable_binding(response_varbind);
     }
 }
@@ -314,14 +356,43 @@ void SNMPServer::process_get_bulk_request(const SNMPPacket& request, SNMPPacket&
 void SNMPServer::process_set_request(const SNMPPacket& request, SNMPPacket& response) {
     response.set_pdu_type(SNMP_PDU_GET_RESPONSE);
 
-    // TODO: Implement SET request processing
-    Logger::get_instance().log(LogLevel::DEBUG, "SET request not implemented yet");
-
     for (const auto& varbind : request.get_variable_bindings()) {
         SNMPPacket::VariableBinding response_varbind;
         response_varbind.oid = varbind.oid;
-        response_varbind.value_type = 0x05; // NULL
-        response_varbind.value.clear();
+
+        // Check if the object exists and is writable
+        MIBValue mib_value;
+        if (MIBManager::get_instance().get_value(varbind.oid, mib_value)) {
+            // Object exists, check if it's writable
+            if (MIBManager::get_instance().is_scalar(varbind.oid)) {
+                // For now, we'll reject all SET operations as read-only
+                response_varbind.value_type = 0x05; // NULL
+                response_varbind.value.clear();
+                response.set_error_status(SNMP_ERROR_READ_ONLY);
+                response.set_error_index(static_cast<uint8_t>(request.get_variable_bindings().size()));
+            } else {
+                // Try to set the value
+                MIBValue new_value(static_cast<SNMPDataType>(varbind.value_type), varbind.value);
+                if (MIBManager::get_instance().set_value(varbind.oid, new_value)) {
+                    // Success - return the new value
+                    response_varbind.value_type = varbind.value_type;
+                    response_varbind.value = varbind.value;
+                } else {
+                    // Set failed
+                    response_varbind.value_type = 0x05; // NULL
+                    response_varbind.value.clear();
+                    response.set_error_status(SNMP_ERROR_WRONG_VALUE);
+                    response.set_error_index(static_cast<uint8_t>(request.get_variable_bindings().size()));
+                }
+            }
+        } else {
+            // No such object
+            response_varbind.value_type = 0x05; // NULL
+            response_varbind.value.clear();
+            response.set_error_status(SNMP_ERROR_NO_SUCH_NAME);
+            response.set_error_index(static_cast<uint8_t>(request.get_variable_bindings().size()));
+        }
+
         response.add_variable_binding(response_varbind);
     }
 }

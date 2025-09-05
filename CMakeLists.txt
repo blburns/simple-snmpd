@@ -83,6 +83,7 @@ set(SOURCES
     src/core/snmp_connection.cpp
     src/core/snmp_packet.cpp
     src/core/snmp_config.cpp
+    src/core/snmp_mib.cpp
     src/core/logger.cpp
     src/core/error_handler.cpp
 )
@@ -93,6 +94,7 @@ set(CORE_SOURCES
     src/core/snmp_connection.cpp
     src/core/snmp_packet.cpp
     src/core/snmp_config.cpp
+    src/core/snmp_mib.cpp
     src/core/logger.cpp
     src/core/platform.cpp
     src/core/error_handler.cpp
@@ -104,6 +106,7 @@ set(HEADERS
     include/simple_snmpd/snmp_connection.hpp
     include/simple_snmpd/snmp_packet.hpp
     include/simple_snmpd/snmp_config.hpp
+    include/simple_snmpd/snmp_mib.hpp
     include/simple_snmpd/logger.hpp
     include/simple_snmpd/platform.hpp
     include/simple_snmpd/error_handler.hpp
