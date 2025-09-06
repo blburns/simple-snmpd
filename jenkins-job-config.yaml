@@ -1,0 +1,170 @@
+# Simple Jenkins Job Configuration for Simple SNMP Daemon
+# This is a more focused YAML configuration for the pipeline job
+
+job:
+  name: "simple-snmpd-pipeline"
+  type: "pipeline"
+  description: "Simple SNMP Daemon CI/CD Pipeline - Multi-platform build, test, and deployment"
+  
+  # Build configuration
+  properties:
+    - buildDiscarder:
+        strategy:
+          logRotator:
+            daysToKeep: 30
+            numToKeep: 10
+            artifactDaysToKeep: 7
+            artifactNumToKeep: 5
+    
+    - githubProject:
+        projectUrl: "https://github.com/SimpleDaemons/simple-snmpd"
+    
+    - pipelineTriggers:
+        triggers:
+          - scm:
+              scmpoll_spec: "H/5 * * * *"
+          - githubPush:
+              events:
+                - push
+                - pullRequest
+              branches:
+                - main
+                - develop
+  
+  # SCM Configuration
+  scm:
+    git:
+      remote: "https://github.com/SimpleDaemons/simple-snmpd.git"
+      credentialsId: "github-credentials"
+      branches:
+        - "*/main"
+        - "*/develop"
+      extensions:
+        - cleanBeforeCheckout
+        - cleanCheckout
+        - wipeWorkspace
+  
+  # Pipeline script (references the Jenkinsfile)
+  pipeline:
+    scriptPath: "Jenkinsfile"
+  
+  # Publishers
+  publishers:
+    - artifactArchiver:
+        artifacts: "build/**/*.deb,build/**/*.rpm,build/**/*.dmg,build/**/*.pkg,build/**/*.msi,build/**/*.zip,build/**/*.tar.gz"
+        allowEmptyArchive: true
+        onlyIfSuccessful: false
+        fingerprint: false
+        caseSensitive: true
+    
+    - testResults:
+        testResultsPattern: "build/test-results.xml"
+    
+    - cobertura:
+        reportFilePattern: "build/coverage.xml"
+        onlyStable: false
+        failUnhealthy: false
+        failUnstable: false
+        autoUpdateHealth: false
+        autoUpdateStability: false
+        zoomCoverageChart: false
+        enableNewApi: true
+        sourceEncoding: "ASCII"
+        useDeltaValues: false
+        failNoReports: false
+        lineCoverageTargets: "80, 0, 0"
+        methodCoverageTargets: "80, 0, 0"
+        conditionalCoverageTargets: "70, 0, 0"
+    
+    - htmlPublisher:
+        reportName: "Coverage Report"
+        reportDir: "build/coverage_html"
+        reportFiles: "index.html"
+        keepAll: true
+        allowMissing: false
+        alwaysLinkToLastBuild: true
+  
+  # Build wrappers
+  wrappers:
+    - timestamps
+    - ansiColor
+    - timeout:
+        timeout: 60
+        timeoutType: "ABSOLUTE"
+    - buildNameUpdater:
+        buildName: "#${BUILD_NUMBER} - ${VERSION}"
+
+# Parameters for the pipeline
+parameters:
+  - choice:
+      name: "BUILD_TYPE"
+      choices: ["Release", "Debug", "RelWithDebInfo"]
+      description: "CMake build type"
+  
+  - choice:
+      name: "DOCKER_REGISTRY"
+      choices: ["docker.io", "ghcr.io", "quay.io"]
+      description: "Docker registry to push images"
+  
+  - string:
+      name: "DOCKER_NAMESPACE"
+      defaultValue: "simpledaemons"
+      description: "Docker namespace for images"
+  
+  - boolean:
+      name: "ENABLE_TESTS"
+      defaultValue: true
+      description: "Run unit and integration tests"
+  
+  - boolean:
+      name: "ENABLE_SECURITY_SCAN"
+      defaultValue: true
+      description: "Run security scanning"
+  
+  - boolean:
+      name: "ENABLE_COVERAGE"
+      defaultValue: true
+      description: "Generate code coverage reports"
+  
+  - boolean:
+      name: "BUILD_DOCKER_IMAGES"
+      defaultValue: true
+      description: "Build and push Docker images"
+  
+  - boolean:
+      name: "BUILD_PACKAGES"
+      defaultValue: true
+      description: "Build platform-specific packages"
+  
+  - choice:
+      name: "TARGET_ARCHITECTURES"
+      choices: ["x86_64", "arm64", "multi-arch"]
+      description: "Target architectures for Docker builds"
+
+# Environment variables
+environment:
+  PROJECT_NAME: "simple-snmpd"
+  COVERAGE_THRESHOLD: 80
+  DOCKER_LATEST_TAG: "latest"
+
+# Build triggers
+triggers:
+  - scm:
+      scmpoll_spec: "H/5 * * * *"
+  - githubPush:
+      events:
+        - push
+        - pullRequest
+      branches:
+        - main
+        - develop
+
+# Build options
+options:
+  timeout: 60
+  timestamps: true
+  ansiColor: "xterm"
+  buildDiscarder:
+    logRotator:
+      numToKeepStr: "10"
+  skipDefaultCheckout: true
