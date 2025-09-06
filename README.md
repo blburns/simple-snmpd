@@ -3,17 +3,24 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](https://github.com/simpledaemons/simple-snmpd)
 [![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows-lightgrey.svg)](https://github.com/simpledaemons/simple-snmpd)
+[![Version](https://img.shields.io/badge/version-0.3.0-blue.svg)](https://github.com/simpledaemons/simple-snmpd)
+[![CI/CD](https://img.shields.io/badge/CI%2FCD-Jenkins-orange.svg)](docs/ci-cd/README.md)
 
 A lightweight, secure, and cross-platform SNMP daemon built with modern C++.
 
 ## Features
 
 - **Lightweight**: Minimal resource footprint with efficient memory usage
-- **Secure**: Built with security best practices and access controls
+- **Secure**: Built with security best practices and comprehensive access controls
 - **Cross-platform**: Runs on Linux, macOS, and Windows
 - **Modern C++**: Built with C++17 and modern development practices
-- **SNMP v2c Support**: Full SNMP v2c protocol implementation
-- **Docker Ready**: Containerized deployment with multi-architecture support
+- **Complete SNMP Support**: Full SNMP v1, v2c, and v3 protocol implementation
+- **Advanced MIB Support**: System, Interface, and SNMP MIBs with custom MIB support
+- **Enterprise Security**: User-based Security Model (USM), View-based Access Control (VACM)
+- **Performance Optimized**: Multi-threading, memory pools, and high-performance networking
+- **Monitoring Ready**: Prometheus metrics, health checks, and comprehensive observability
+- **Docker Ready**: Multi-architecture containerized deployment
+- **CI/CD Ready**: Complete Jenkins pipeline with automated testing and deployment
 - **Production Ready**: Comprehensive logging, monitoring, and deployment options
 
 ## Quick Start
@@ -262,19 +269,22 @@ make test
 
 See [ROADMAP.md](ROADMAP.md) for the complete development roadmap.
 
-### Current Version (v0.1.0)
-- ✅ Core SNMP daemon implementation
+### Current Version (v0.3.0) - Phase 3 Complete
+- ✅ **Phase 1**: Core SNMP daemon implementation
+- ✅ **Phase 2**: Complete SNMP protocol support (v1, v2c, MIBs, security)
+- ✅ **Phase 3**: Advanced features (SNMP v3, performance, monitoring)
 - ✅ Cross-platform build system
-- ✅ Basic SNMP v2c support
-- ✅ Docker containerization
-- ✅ Service configurations
+- ✅ Docker containerization with multi-architecture support
+- ✅ Service configurations for all platforms
+- ✅ Comprehensive testing suite
+- ✅ CI/CD pipeline with Jenkins
 
-### Upcoming Features
-- 🔄 Complete SNMP v2c implementation
-- 🔄 SNMP v1 compatibility
-- 🔄 Basic MIB support
-- 🔄 SNMP trap support
-- 🔄 Security enhancements
+### Upcoming Features (Phase 4 & 5)
+- 🔄 **Phase 4**: Enterprise features (web UI, REST API, advanced MIBs)
+- 🔄 **Phase 5**: Cloud and container features (Kubernetes, Helm charts)
+- 🔄 Dynamic MIB loading and compilation
+- 🔄 Web-based management interface
+- 🔄 Kubernetes operator and Helm charts
 
 ## Documentation
 
@@ -283,6 +293,8 @@ See [ROADMAP.md](ROADMAP.md) for the complete development roadmap.
 - [Configuration Guide](docs/configuration/README.md)
 - [Deployment Guide](docs/deployment/README.md)
 - [User Guide](docs/user-guide/README.md)
+- [CI/CD Pipeline](docs/ci-cd/README.md)
+- [Changelog](CHANGELOG.md)
 - [Troubleshooting](docs/troubleshooting/README.md)
 
 ## Support
